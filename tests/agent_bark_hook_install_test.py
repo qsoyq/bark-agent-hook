@@ -31,7 +31,7 @@ class _Completed:
 
 
 def _plain(text: str) -> str:
-    return text.replace("│", " ").replace("┃", " ").replace("┏", " ").replace("┓", " ").replace("└", " ").replace("┘", " ")
+    return " ".join(text.replace("│", " ").replace("┃", " ").replace("┏", " ").replace("┓", " ").replace("└", " ").replace("┘", " ").split())
 
 
 def test_wheel_includes_openclaw_plugin_assets_and_resolves_installed_plugin_dir(tmp_path):
@@ -431,7 +431,7 @@ def test_uninstall_codex_removes_installed_plugin(monkeypatch):
     assert "removed" in result.output
     assert "0.1.0 -> unknown" in result.output
     assert ["codex", "plugin", "remove", "bark-agent-hook-codex@bark-agent-hook"] in calls
-    assert "Marketplace sources, environment variables, and historical audit logs were left unchanged." in result.output
+    assert "Marketplace sources, environment variables, and historical audit logs were left unchanged." in _plain(result.output)
 
 
 def test_uninstall_agent_option_limits_selected_agents(monkeypatch):
