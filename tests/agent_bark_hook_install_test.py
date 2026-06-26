@@ -16,8 +16,8 @@ OLD_AGENT_BARK_NOTIFY_PREFIX = "AI_ASSISTANT" + "_AGENT_BARK_NOTIFY_"
 OPENCLAW_PLUGIN_WHEEL_FILES = {
     "plugins/bark-agent-hook-openclaw/package.json",
     "plugins/bark-agent-hook-openclaw/openclaw.plugin.json",
+    "plugins/bark-agent-hook-openclaw/README.md",
     "plugins/bark-agent-hook-openclaw/index.js",
-    "plugins/bark-agent-hook-openclaw/index.ts",
 }
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,7 +64,7 @@ def test_wheel_includes_openclaw_plugin_assets_and_resolves_installed_plugin_dir
             "from bark_agent_hook.hook import _openclaw_plugin_dir; "
             "plugin_dir = _openclaw_plugin_dir(); "
             "assert plugin_dir.is_dir(), plugin_dir; "
-            "expected = {'package.json', 'openclaw.plugin.json', 'index.js', 'index.ts'}; "
+            "expected = {'package.json', 'openclaw.plugin.json', 'README.md', 'index.js'}; "
             "assert expected <= {path.name for path in plugin_dir.iterdir()}, plugin_dir",
         ],
         cwd=tmp_path,

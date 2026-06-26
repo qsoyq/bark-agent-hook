@@ -58,6 +58,9 @@ jobs:
       - name: Check plugin versions
         run: uv run python scripts/check_versions.py
 
+      - name: Check OpenClaw runtime entry syntax
+        run: node --check plugins/bark-agent-hook-openclaw/index.js
+
       - name: Run pre-commit
         run: uv run pre-commit run --all-files
 
