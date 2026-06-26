@@ -1,6 +1,6 @@
 {
   "name": "bark-agent-hook",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Send Bark notifications from Claude Code lifecycle hooks through bark-agent-hook.",
   "author": {
     "name": "qsoyq"
