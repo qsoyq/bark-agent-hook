@@ -8,6 +8,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from bark_agent_hook import hook as agent_bark_hook
+from bark_agent_hook import installer as agent_bark_installer
 
 runner = CliRunner()
 
@@ -358,7 +359,7 @@ def test_install_openclaw_fails_when_local_plugin_directory_is_missing(monkeypat
 
     monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
     monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
-    monkeypatch.setattr(agent_bark_hook, "_openclaw_plugin_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr(agent_bark_installer, "_openclaw_plugin_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(agent_bark_hook.cmd, ["install"])
 
