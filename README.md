@@ -4,12 +4,32 @@ Standalone Bark notification hooks for Codex, Claude Code, and OpenClaw.
 
 ## Install
 
+Install the CLI from PyPI:
+
 ```shell
-uv tool install git+https://github.com/qsoyq/bark-agent-hook.git
+pip install bark-agent-hook
 bark-agent-hook --help
 ```
 
-Install all locally available agent plugins:
+If you prefer `uv`-managed command-line tools:
+
+```shell
+uv tool install bark-agent-hook
+bark-agent-hook --help
+```
+
+You can also run the CLI without installing it first:
+
+```shell
+uvx bark-agent-hook --help
+uvx bark-agent-hook hook --runtime codex --event completion --dry-run
+```
+
+For real agent hooks, keep `bark-agent-hook` installed in `PATH`. The installed Codex, Claude Code, and OpenClaw plugins invoke `bark-agent-hook hook ...` when the agent emits lifecycle events.
+
+## Plugin Setup
+
+Install all locally available agent plugins after installing the CLI:
 
 ```shell
 bark-agent-hook install
@@ -22,11 +42,24 @@ bark-agent-hook install --agent codex
 bark-agent-hook install --agent claude --agent openclaw
 ```
 
+`uvx` works for plugin setup too, but the hook runtime still needs an installed `bark-agent-hook` command later:
+
+```shell
+uvx bark-agent-hook install --agent codex
+```
+
 Uninstall plugin hooks without removing marketplace sources, environment variables, or historical audit logs:
 
 ```shell
 bark-agent-hook uninstall
 bark-agent-hook uninstall --agent codex
+```
+
+Upgrade the CLI with your package manager, then run `install` again to refresh companion plugins:
+
+```shell
+pip install --upgrade bark-agent-hook
+bark-agent-hook install
 ```
 
 ## Runtime Configuration
