@@ -68,6 +68,25 @@ def test_codex_bark_plugin_hook_config_uses_codex_schema():
     }
 
 
+def test_claude_bark_plugin_hook_config_catches_user_questions():
+    plugin_root = Path("plugins/bark-agent-hook-claude")
+    hook_config = json.loads((plugin_root / "hooks/hooks.json").read_text())
+
+    approval_command = "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+    completion_command = "bark-agent-hook hook --runtime claude --event completion --summary-mode extract"
+
+    permission_hook = hook_config["hooks"]["PermissionRequest"][0]["hooks"][0]
+    notification_hook = hook_config["hooks"]["Notification"][0]["hooks"][0]
+    ask_user_question_hook = hook_config["hooks"]["PreToolUse"][0]
+    stop_hook = hook_config["hooks"]["Stop"][0]["hooks"][0]
+
+    assert permission_hook == {"type": "command", "command": approval_command}
+    assert notification_hook == {"type": "command", "command": approval_command}
+    assert ask_user_question_hook["matcher"] == "AskUserQuestion"
+    assert ask_user_question_hook["hooks"][0] == {"type": "command", "command": approval_command}
+    assert stop_hook == {"type": "command", "command": completion_command}
+
+
 def test_bark_plugin_versions_match_project_version():
     project_version = _project_version()
     codex_manifest = json.loads(Path("plugins/bark-agent-hook-codex/.codex-plugin/plugin.json").read_text())
