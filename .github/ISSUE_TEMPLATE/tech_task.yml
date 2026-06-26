@@ -1,0 +1,53 @@
+name: Tech Task
+description: Track maintenance, governance, refactor, or infrastructure work.
+title: "chore: "
+labels: ["maintenance"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Tech Task
+        - Refactor
+        - Research
+        - QA Task
+        - Release Task
+        - Incident
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      value: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk

@@ -1,0 +1,20 @@
+{
+  "name": "bark-agent-hook",
+  "interface": {
+    "displayName": "bark-agent-hook"
+  },
+  "plugins": [
+    {
+      "name": "bark-agent-hook-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bark-agent-hook-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

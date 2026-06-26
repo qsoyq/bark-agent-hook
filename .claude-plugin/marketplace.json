@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "bark-agent-hook",
+  "description": "Claude Code plugins for Bark agent hook workflows.",
+  "owner": {
+    "name": "qsoyq"
+  },
+  "plugins": [
+    {
+      "name": "bark-agent-hook",
+      "description": "Send Bark notifications from Claude Code lifecycle hooks through bark-agent-hook.",
+      "author": {
+        "name": "qsoyq"
+      },
+      "category": "productivity",
+      "source": "./plugins/bark-agent-hook-claude",
+      "homepage": "https://github.com/qsoyq/bark-agent-hook"
+    }
+  ]
+}
