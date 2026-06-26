@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from scripts.check_versions import main as check_versions
+from scripts.sync_versions import PLUGIN_VERSION_FILES, sync_plugin_versions
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -17,6 +18,30 @@ def _project_version() -> str:
     version = project["version"]
     assert isinstance(version, str)
     return version
+
+
+def _write_version_fixture(repo_root: Path, project_version: str, plugin_versions: dict[str, str]) -> None:
+    (repo_root / "pyproject.toml").write_text(
+        f'[project]\nname = "bark-agent-hook"\nversion = "{project_version}"\n',
+        encoding="utf-8",
+    )
+    for label, (relative_path, _) in PLUGIN_VERSION_FILES.items():
+        path = repo_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps({"version": plugin_versions[label], "name": label}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+
+def _read_fixture_plugin_versions(repo_root: Path) -> dict[str, str]:
+    versions = {}
+    for label, (relative_path, _) in PLUGIN_VERSION_FILES.items():
+        document = json.loads((repo_root / relative_path).read_text(encoding="utf-8"))
+        version = document["version"]
+        assert isinstance(version, str)
+        versions[label] = version
+    return versions
 
 
 def test_codex_bark_plugin_uses_default_hook_config_path():
@@ -70,6 +95,30 @@ def test_bark_plugin_versions_stay_in_sync_across_targets():
 def test_version_check_script_accepts_current_versions(capsys):
     assert check_versions() == 0
     assert _project_version() in capsys.readouterr().out
+
+
+def test_sync_plugin_versions_upgrades_lower_plugin_versions(tmp_path, capsys):
+    _write_version_fixture(
+        tmp_path,
+        "0.2.0",
+        {label: "0.1.0" for label in PLUGIN_VERSION_FILES},
+    )
+
+    assert sync_plugin_versions(tmp_path) == 0
+    assert set(_read_fixture_plugin_versions(tmp_path).values()) == {"0.2.0"}
+    assert "Updated plugin versions to match package version 0.2.0" in capsys.readouterr().out
+
+
+def test_sync_plugin_versions_refuses_to_downgrade_plugins(tmp_path, capsys):
+    plugin_versions = {label: "0.1.0" for label in PLUGIN_VERSION_FILES}
+    plugin_versions["codex plugin"] = "0.3.0"
+    _write_version_fixture(tmp_path, "0.2.0", plugin_versions)
+
+    assert sync_plugin_versions(tmp_path) == 1
+    assert _read_fixture_plugin_versions(tmp_path) == plugin_versions
+    captured = capsys.readouterr()
+    assert "Refusing to downgrade plugin versions to the package version" in captured.err
+    assert "codex plugin: 0.3.0" in captured.err
 
 
 def test_claude_marketplace_exposes_bark_plugin():
