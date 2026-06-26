@@ -2,7 +2,7 @@
   "id": "bark-agent-hook-openclaw",
   "name": "Agent Bark Notify",
   "description": "Send Bark notifications from OpenClaw lifecycle hooks through bark-agent-hook.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "activation": {
     "onStartup": true
   },
