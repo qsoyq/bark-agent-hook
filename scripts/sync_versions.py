@@ -80,11 +80,10 @@ def sync_plugin_versions(repo_root: Path = REPO_ROOT) -> int:
         print(error, file=sys.stderr)
         return 1
 
-    downgrade_candidates = {
-        label: plugin_version
-        for label, (plugin_version, _, _) in plugin_versions.items()
-        if _version_key(label, plugin_version) > project_key
-    }
+    downgrade_candidates: dict[str, str] = {}
+    for label, (plugin_version, _, _) in plugin_versions.items():
+        if _version_key(label, plugin_version) > project_key:
+            downgrade_candidates[label] = plugin_version
     if downgrade_candidates:
         print("Refusing to downgrade plugin versions to the package version:", file=sys.stderr)
         print(f"  package: {project_version}", file=sys.stderr)
