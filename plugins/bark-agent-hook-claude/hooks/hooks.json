@@ -1,0 +1,34 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event completion --summary-mode extract"
+          }
+        ]
+      }
+    ]
+  }
+}

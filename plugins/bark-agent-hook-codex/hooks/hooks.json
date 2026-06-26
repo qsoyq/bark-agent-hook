@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+          }
+        ]
+      }
+    ]
+  }
+}

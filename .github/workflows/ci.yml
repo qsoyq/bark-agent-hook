@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dev group
+        run: uv sync --group dev --no-install-project
+
+      - name: Run tox
+        run: uv run tox -e ${{ matrix.python-version }}
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dev group
+        run: uv sync --group dev --no-install-project
+
+      - name: Check plugin versions
+        run: uv run python scripts/check_versions.py
+
+      - name: Run pre-commit
+        run: uv run pre-commit run --all-files
+
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [test, lint]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Install release dependencies
+        run: uv sync --group dev --no-install-project
+
+      - name: Resolve project version
+        id: version
+        run: |
+          VERSION=$(uv run python - <<'PY'
+          from pathlib import Path
+          import tomllib
+
+          doc = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          project = doc.get("project", {})
+          if not isinstance(project, dict) or not isinstance(project.get("version"), str):
+              raise SystemExit("project.version is missing from pyproject.toml")
+          print(project["version"])
+          PY
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.version.outputs.version }} already exists; skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        if: steps.release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --target "$GITHUB_SHA" \
+            --generate-notes \
+            --title "${{ steps.version.outputs.version }}"
