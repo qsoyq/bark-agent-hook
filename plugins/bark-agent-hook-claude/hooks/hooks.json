@@ -20,6 +20,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
