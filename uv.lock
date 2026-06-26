@@ -95,6 +95,7 @@ dev = [
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "tox-uv" },
     { name = "types-requests" },
 ]
@@ -113,6 +114,7 @@ dev = [
     { name = "mypy", specifier = ">=1.19" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
     { name = "tox-uv", specifier = ">=1.16" },
     { name = "types-requests" },
 ]

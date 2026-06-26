@@ -1,8 +1,13 @@
 import json
-import tomllib
+import sys
 from pathlib import Path
 
 from scripts.check_versions import main as check_versions
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover - exercised on Python 3.10
+    import tomli as tomllib
 
 
 def _project_version() -> str:

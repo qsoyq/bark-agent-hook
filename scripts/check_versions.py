@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 import sys
-import tomllib
 from pathlib import Path
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover - exercised on Python 3.10
+    import tomli as tomllib
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
