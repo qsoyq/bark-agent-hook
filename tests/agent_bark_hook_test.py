@@ -561,7 +561,32 @@ def test_openclaw_failed_title_omits_implicit_project_and_git_branch(monkeypatch
     assert result.exit_code == 0
     body = json.loads(result.output)
     assert body["title"] == "Failed"
-    assert body["body"] == "本轮因错误停止"
+    assert body["body"] == "gateway error"
+
+
+def test_openclaw_failed_extracts_failure_reason(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "openclaw", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "source": "openclaw",
+                "hook_event_name": "agent_end",
+                "success": False,
+                "failureReason": "provider timed out",
+                "workspaceDir": "/tmp/demo-project",
+                "sessionId": "openclaw-agent-end-failed-reason",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["body"] == "provider timed out"
 
 
 def test_openclaw_message_sent_extracts_delivered_content(monkeypatch, tmp_path):
@@ -614,11 +639,75 @@ def test_audit_log_records_sent_metadata_without_secrets(monkeypatch, tmp_path):
     assert record["project"] == "demo-project"
     assert record["title"] == "Done - demo-project"
     assert record["body_len"] == len("done with token=secret")
+    assert record["body_preview"] == "done with token=[REDACTED]"
     assert record["dedupe_key_hash"]
     raw_record = json.dumps(record)
     assert "secret-device-key" not in raw_record
     assert "done with token=secret" not in raw_record
     assert "lody" not in record
+
+
+def test_audit_log_records_failed_body_preview(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "openclaw", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "source": "openclaw",
+                "hook_event_name": "agent_end",
+                "success": False,
+                "error": "gateway error",
+                "workspaceDir": "/tmp/demo-project",
+                "sessionId": "openclaw-agent-end-audit-failed-error",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    record = _read_jsonl(audit_log)[0]
+    assert record["status"] == "sent"
+    assert record["body_preview"] == "gateway error"
+    assert record["body_len"] == len("gateway error")
+
+
+def test_failed_summary_does_not_deliver_or_log_sensitive_text(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "openclaw", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "source": "openclaw",
+                "hook_event_name": "agent_end",
+                "success": False,
+                "error": "request failed with api_key=super-secret",
+                "workspaceDir": "/tmp/demo-project",
+                "sessionId": "openclaw-agent-end-sensitive-failed-error",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["body"] == "request failed with api_key=[REDACTED]"
+    record = _read_jsonl(audit_log)[0]
+    raw_record = json.dumps(record)
+    assert record["body_preview"] == "request failed with api_key=[REDACTED]"
+    assert "super-secret" not in body["body"]
+    assert "super-secret" not in raw_record
 
 
 def test_audit_log_records_lody_settings_passthrough(monkeypatch, tmp_path):

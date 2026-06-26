@@ -224,6 +224,20 @@ def extract_summary(runtime: str, event: str, payload: dict[str, Any], max_chars
             return message
         return None
 
+    if event == "failed":
+        for candidate in (
+            _extract_text(payload.get("error")),
+            _extract_text(payload.get("reason")),
+            _extract_text(payload.get("failureReason")),
+            _extract_text(payload.get("failure_reason")),
+            _extract_text(payload.get("message")),
+            _extract_text(payload.get("summary")),
+        ):
+            summary = clean_summary_text(candidate, max_chars)
+            if summary:
+                return summary
+        return None
+
     return None
 
 
