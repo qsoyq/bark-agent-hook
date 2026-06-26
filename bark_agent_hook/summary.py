@@ -6,7 +6,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from bark_agent_hook.constants import BEARER_RE, FENCED_CODE_RE, MAX_TRANSCRIPT_BYTES, SENSITIVE_ASSIGNMENT_RE, SENSITIVE_KEY_RE, SHELL_PREFIX_RE
+from bark_agent_hook.constants import (
+    BEARER_RE,
+    FENCED_CODE_RE,
+    MAX_TRANSCRIPT_BYTES,
+    SENSITIVE_ASSIGNMENT_RE,
+    SENSITIVE_KEY_RE,
+    SHELL_PREFIX_RE,
+)
+
 
 def _strip_url_query(value: str) -> str:
     def replace(match: re.Match[str]) -> str:

@@ -11,12 +11,29 @@ from urllib.parse import quote
 import httpx
 import typer
 
-from bark_agent_hook.constants import DEDUP_TTL_SECONDS, DEFAULT_TITLE_TEMPLATE, GROUP_MODE_CHOICES, GROUP_MODE_ENV, HOOK_URL_TEMPLATE_ENV, TITLE_TEMPLATE_ENV
+from bark_agent_hook.constants import (
+    DEDUP_TTL_SECONDS,
+    GROUP_MODE_CHOICES,
+    GROUP_MODE_ENV,
+    HOOK_URL_TEMPLATE_ENV,
+    TITLE_TEMPLATE_ENV,
+)
 from bark_agent_hook.models import AgentIdentity, GroupMode, GroupModeOption, Notification
-from bark_agent_hook.runtime import branch_name, cwd_basename, event_label, identity_for_runtime, project_name, safe_message, session_name, title_branch_name, title_project_name
+from bark_agent_hook.runtime import (
+    branch_name,
+    cwd_basename,
+    event_label,
+    identity_for_runtime,
+    project_name,
+    safe_message,
+    session_name,
+    title_branch_name,
+    title_project_name,
+)
 from bark_agent_hook.settings import LodySettings
-from bark_agent_hook.summary import _extract_text, _normalized_payload_text
+from bark_agent_hook.summary import _normalized_payload_text
 from bark_agent_hook.utils import _env_value, _hook_event_name, _payload_value
+
 
 class _SafeTitleVars(dict[str, str]):
     def __missing__(self, key: str) -> str:

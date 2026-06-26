@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+
 def _payload_value(payload: dict[str, Any], *keys: str) -> str:
     for key in keys:
         value = payload.get(key)

@@ -5,12 +5,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from bark_agent_hook.constants import AUDIT_LOG_ENV, AUDIT_LOG_FILE_ENV, BEARER_RE, DEFAULT_AUDIT_LOG_PATH, SENSITIVE_ASSIGNMENT_RE
+from bark_agent_hook.constants import (
+    AUDIT_LOG_ENV,
+    AUDIT_LOG_FILE_ENV,
+    BEARER_RE,
+    DEFAULT_AUDIT_LOG_PATH,
+    SENSITIVE_ASSIGNMENT_RE,
+)
 from bark_agent_hook.models import Notification, SummaryMode
 from bark_agent_hook.runtime import project_name
 from bark_agent_hook.settings import LodySettings
 from bark_agent_hook.summary import _redact_url, _truncate_summary
 from bark_agent_hook.utils import _env_value, _hash_value, _hook_event_name
+
 
 def _session_id(payload: dict[str, Any]) -> str | None:
     value = payload.get("session_id") or payload.get("sessionId") or payload.get("sessionKey") or payload.get("conversation_id") or payload.get("transcript_path")

@@ -10,8 +10,19 @@ from bark_agent_hook.audit import _finish_audit_record, _new_audit_record
 from bark_agent_hook.constants import DEFAULT_SUMMARY_MAX_CHARS
 from bark_agent_hook.installer import _install_for_available_agents, _uninstall_for_available_agents
 from bark_agent_hook.models import AgentOption, Event, GroupModeOption, Runtime, SummaryMode
-from bark_agent_hook.notification import already_sent, build_notification, resolve_group_mode, send_bark, skip_notification_reason
-from bark_agent_hook.output import _found_cli_count, _print_install_results, _print_uninstall_results, _succeeded
+from bark_agent_hook.notification import (
+    already_sent,
+    build_notification,
+    resolve_group_mode,
+    send_bark,
+    skip_notification_reason,
+)
+from bark_agent_hook.output import (
+    _found_cli_count,
+    _print_install_results,
+    _print_uninstall_results,
+    _succeeded,
+)
 from bark_agent_hook.runtime import _read_stdin, detect_event, detect_runtime, parse_hook_payload
 from bark_agent_hook.settings import LodySettings
 from bark_agent_hook.summary import extract_summary

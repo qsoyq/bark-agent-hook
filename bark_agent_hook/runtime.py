@@ -8,9 +8,18 @@ from typing import Any
 
 import typer
 
-from bark_agent_hook.constants import CODEX_ICON_URL, DEFAULT_MESSAGES, EVENT_LABELS, LODY_ICON_URL, MAX_MESSAGE_LENGTH, OPENCLAW_ICON_URL, CLAUDE_CODE_ICON_URL
+from bark_agent_hook.constants import (
+    CLAUDE_CODE_ICON_URL,
+    CODEX_ICON_URL,
+    DEFAULT_MESSAGES,
+    EVENT_LABELS,
+    LODY_ICON_URL,
+    MAX_MESSAGE_LENGTH,
+    OPENCLAW_ICON_URL,
+)
 from bark_agent_hook.models import AgentIdentity, Event, Runtime
 from bark_agent_hook.settings import LodySettings
+
 
 def _read_stdin() -> str:
     try:

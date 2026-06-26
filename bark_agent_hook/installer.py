@@ -9,6 +9,7 @@ from typing import Any
 from bark_agent_hook.constants import OPENCLAW_CONVERSATION_ACCESS_PATCH
 from bark_agent_hook.models import AgentOption, CommandResult, InstallResult, InstallStatus
 
+
 def _run_install_command(args: list[str], *, input_text: str | None = None) -> CommandResult:
     proc = subprocess.run(
         args,

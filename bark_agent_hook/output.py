@@ -5,6 +5,7 @@ from rich.table import Table
 
 from bark_agent_hook.models import InstallResult, InstallStatus
 
+
 def _version_text(before: str | None, after: str | None) -> str:
     before_text = before or "none"
     after_text = after or "unknown"
