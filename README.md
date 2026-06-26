@@ -2,6 +2,17 @@
 
 Standalone Bark notification hooks for Codex, Claude Code, and OpenClaw.
 
+## Overview
+
+`bark-agent-hook` is a Python 3.10+ Typer CLI that installs companion hook assets for local coding agents and sends concise Bark notifications when agent lifecycle events need attention or have completed. The package keeps runtime behavior focused on hook execution, plugin installation, and safe notification delivery.
+
+The project includes:
+
+- `bark_agent_hook/`: the typed Python package and CLI entry point.
+- `plugins/`: runtime plugin assets for Codex, Claude Code, and OpenClaw.
+- `tests/`: CLI and plugin manifest coverage.
+- `.github/`: issue templates, PR template, CI, Dependabot, and expected repository governance settings.
+
 ## Install
 
 Install the CLI from PyPI:
@@ -111,6 +122,8 @@ printf '%s' '{"session_id":"demo","cwd":"/tmp/demo-project"}' \
 
 ## Development
 
+This project uses `uv`, Ruff, mypy, pytest, tox, and pre-commit.
+
 ```shell
 uv sync --group dev
 uv run pytest -q
@@ -119,3 +132,53 @@ uv build
 ```
 
 This repository does not maintain generated command docs; `bark-agent-hook --help` is the command reference.
+
+## Testing And Build
+
+Run the focused test suite during normal development:
+
+```shell
+uv run pytest -q
+```
+
+Run the compatibility matrix before release-sensitive changes:
+
+```shell
+uv run tox
+```
+
+Build local distributions with:
+
+```shell
+uv build
+```
+
+## Release
+
+The `CI` workflow validates pull requests and `main` pushes. Merges to `main` can create a GitHub release for the current `project.version` when one does not already exist. Publishing to PyPI uses trusted publishing through the protected `pypi` GitHub environment.
+
+Manual PyPI publishing is available through the `workflow_dispatch` path by providing an existing stable `x.y.z` release tag. The workflow verifies required CI checks for the release commit before publishing.
+
+## Branch And Review Policy
+
+The repository uses GitHub Flow:
+
+- Open or pick an issue before starting work.
+- Branch from `main` using a scoped branch name such as `chore/13-governance-audit-remediation`.
+- Keep changes scoped to the issue.
+- Open a PR against `main` and fill in the repository PR template.
+- Required CI checks and review gates are declared in `.github/settings.yml` and should be verified on GitHub.
+
+## Documentation
+
+Project documentation lives under `docs/`:
+
+- `docs/decisions/`: architecture and governance decisions.
+- `docs/design/`: user-facing behavior and design notes.
+- `docs/tech/`: implementation notes and technical references.
+- `docs/release/`: release and publishing notes.
+- `docs/postmortems/`: incident and regression write-ups.
+
+## Ownership
+
+`CODEOWNERS` assigns repository-wide ownership to `@qsoyq`. Security reporting instructions live in `SECURITY.md`, and contribution workflow details live in `CONTRIBUTING.md`.
