@@ -60,6 +60,7 @@ class AgentIdentity:
 class Notification:
     title: str
     body: str
+    markdown: str | None
     icon_url: str
     group: str | None
     bark_url: str

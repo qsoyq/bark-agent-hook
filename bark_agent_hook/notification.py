@@ -41,8 +41,11 @@ class _SafeTitleVars(dict[str, str]):
 
 
 def _default_title(values: dict[str, str]) -> str:
-    parts = [values[key] for key in ("agent", "event", "project", "branch", "session") if values.get(key)]
-    return "".join(f"[{part}]" for part in parts)
+    event = " ".join(values.get("event", "").split())
+    project = " ".join(values.get("project", "").split())
+    if event and project:
+        return f"{event} - {project}"
+    return event or project
 
 
 def notification_title(*, runtime: str, identity: AgentIdentity, event: str, payload: dict[str, Any], env: dict[str, str], lody_settings: LodySettings, cwd: Path | None = None) -> str:
@@ -169,6 +172,47 @@ def notification_group(
     return f"{project}@{branch}"
 
 
+def _markdown_value(value: str) -> str:
+    return " ".join(value.split()).replace("`", "'")
+
+
+def _markdown_code(value: str) -> str:
+    return f"`{_markdown_value(value)}`"
+
+
+def notification_markdown(
+    *,
+    runtime: str,
+    identity: AgentIdentity,
+    event: str,
+    payload: dict[str, Any],
+    env: dict[str, str],
+    body: str,
+    group: str | None,
+    cwd: Path | None = None,
+) -> str:
+    lines = [
+        f"## {_markdown_value(event_label(event))} · {_markdown_value(identity.name)}",
+        "",
+        f"> {_markdown_value(body)}",
+        "",
+        f"- Project: {_markdown_code(project_name(payload, cwd))}",
+    ]
+    branch = branch_name(payload, env, cwd).strip()
+    if branch:
+        lines.append(f"- Branch: {_markdown_code(branch)}")
+    session = session_name(payload, env).strip()
+    if session:
+        lines.append(f"- Session: {_markdown_code(session)}")
+    lines.append(f"- Runtime: {_markdown_code(runtime)}")
+    cwd_name = cwd_basename(payload, cwd).strip()
+    if cwd_name and cwd_name != project_name(payload, cwd).strip():
+        lines.append(f"- Workspace: {_markdown_code(cwd_name)}")
+    if group:
+        lines.append(f"- Group: {_markdown_code(group)}")
+    return "\n".join(lines)
+
+
 def _is_no_reply_text(text: str | None) -> bool:
     return bool(text and text.strip().upper() == "NO_REPLY")
 
@@ -285,11 +329,13 @@ def build_notification(
     title = notification_title(runtime=runtime, identity=identity, event=event, payload=payload, env=env, lody_settings=lody_settings, cwd=cwd)
     bark_server = _env_value(env, "BARK_SERVER", "https://api.day.app")
     dedupe_key = build_dedupe_key(runtime, event, payload, body)
+    group = notification_group(identity=identity, payload=payload, env=env, group_mode=group_mode, cwd=cwd)
     return Notification(
         title=title,
         body=body,
+        markdown=notification_markdown(runtime=runtime, identity=identity, event=event, payload=payload, env=env, body=body, group=group, cwd=cwd),
         icon_url=identity.icon_url,
-        group=notification_group(identity=identity, payload=payload, env=env, group_mode=group_mode, cwd=cwd),
+        group=group,
         bark_url=f"{bark_server.rstrip('/')}/{device_key}",
         click_url=hook_click_url(runtime=runtime, identity=identity, event=event, payload=payload, env=env, lody_settings=lody_settings, cwd=cwd),
         dedupe_key=dedupe_key,
@@ -299,9 +345,12 @@ def build_notification(
 def send_bark(notification: Notification) -> None:
     data = {
         "title": notification.title,
-        "body": notification.body,
         "icon": notification.icon_url,
     }
+    if notification.markdown:
+        data["markdown"] = notification.markdown
+    else:
+        data["body"] = notification.body
     if notification.group:
         data["group"] = notification.group
     if notification.click_url:

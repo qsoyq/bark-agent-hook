@@ -119,7 +119,14 @@ def hook(
 
         if dry_run:
             _finish_audit_record(env, audit_record, status="sent", notification=notification)
-            output = {"title": notification.title, "body": notification.body, "icon": notification.icon_url, "group": notification.group, "url": notification.bark_url}
+            output = {
+                "title": notification.title,
+                "body": notification.body,
+                "markdown": notification.markdown,
+                "icon": notification.icon_url,
+                "group": notification.group,
+                "url": notification.bark_url,
+            }
             if notification.click_url:
                 output["click_url"] = notification.click_url
             typer.echo(json.dumps(output, ensure_ascii=False))
