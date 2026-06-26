@@ -15,7 +15,7 @@ from bark_agent_hook.constants import (
 from bark_agent_hook.models import Notification, SummaryMode
 from bark_agent_hook.runtime import project_name
 from bark_agent_hook.settings import LodySettings
-from bark_agent_hook.summary import _redact_url, _truncate_summary
+from bark_agent_hook.summary import _redact_url, _truncate_summary, clean_summary_text
 from bark_agent_hook.utils import _env_value, _hash_value, _hook_event_name
 
 
@@ -41,6 +41,10 @@ def _safe_error_message(error: BaseException) -> str:
     message = SENSITIVE_ASSIGNMENT_RE.sub(lambda m: f"{m.group(1)}=[REDACTED]", message)
     message = _redact_url(message)
     return _truncate_summary(message, 200)
+
+
+def _safe_body_preview(body: str) -> str | None:
+    return clean_summary_text(body, 200)
 
 
 def _write_audit_record(env: dict[str, str], record: dict[str, Any]) -> None:
@@ -97,6 +101,9 @@ def _finish_audit_record(
         record["dedupe_key_hash"] = _hash_value(notification.dedupe_key)
         record["title"] = notification.title
         record["body_len"] = len(notification.body)
+        body_preview = _safe_body_preview(notification.body)
+        if body_preview is not None:
+            record["body_preview"] = body_preview
     if error is not None:
         record["error_class"] = error.__class__.__name__
         record["error_message"] = _safe_error_message(error)
