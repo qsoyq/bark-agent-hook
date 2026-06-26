@@ -1,6 +1,6 @@
 {
   "name": "bark-agent-hook-openclaw",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Send Bark notifications from OpenClaw lifecycle hooks through bark-agent-hook.",
   "private": true,
