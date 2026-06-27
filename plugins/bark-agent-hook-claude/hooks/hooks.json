@@ -15,18 +15,107 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime claude --event auto --summary-mode extract"
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "AskUserQuestion",
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime claude --event auto --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event failed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event completion --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
           }
         ]
       }

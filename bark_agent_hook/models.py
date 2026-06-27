@@ -7,7 +7,7 @@ from typing import Literal
 Runtime = Literal["auto", "codex", "claude", "openclaw"]
 
 
-Event = Literal["auto", "completion", "approval_needed", "failed"]
+Event = Literal["auto", "completion", "approval_needed", "attention_needed", "failed", "audit_only"]
 
 
 SummaryMode = Literal["fixed", "extract"]

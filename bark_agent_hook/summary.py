@@ -224,6 +224,21 @@ def extract_summary(runtime: str, event: str, payload: dict[str, Any], max_chars
             return message
         return None
 
+    if event == "attention_needed":
+        for candidate in (
+            _extract_text(payload.get("message")),
+            _extract_text(payload.get("notification_type")),
+            _extract_text(payload.get("reason")),
+            _extract_text(payload.get("description")),
+            _extract_text(payload.get("title")),
+            _extract_text(payload.get("summary")),
+            _extract_text(payload.get("content")),
+        ):
+            summary = clean_summary_text(candidate, max_chars)
+            if summary:
+                return summary
+        return None
+
     if event == "failed":
         for candidate in (
             _extract_text(payload.get("error")),

@@ -82,8 +82,20 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
         return event
 
     hook_event = str(payload.get("hook_event_name") or payload.get("event") or payload.get("event_name") or payload.get("type") or "")
+    hook_event_lower = hook_event.lower()
+    if payload.get("success") is False and hook_event not in {"PermissionDenied"}:
+        return "failed"
     if hook_event in {"PermissionRequest", "approval_needed", "approval-needed", "approval:needed", "before_tool_call"}:
         return "approval_needed"
+    if hook_event == "PreToolUse":
+        tool_name = str(payload.get("tool_name") or payload.get("toolName") or payload.get("tool") or payload.get("name") or "")
+        if tool_name == "AskUserQuestion":
+            return "approval_needed"
+        return "audit_only"
+    if hook_event in {"Elicitation", "PermissionDenied", "MessageDisplay"}:
+        return "attention_needed"
+    if hook_event in {"plan_update", "plan_delta", "turn/plan/updated", "TurnPlanUpdatedNotification", "PlanDeltaNotification"}:
+        return "attention_needed"
     if hook_event in {"agent_end", "agent:end"}:
         return "completion" if payload.get("success") is not False else "failed"
     if hook_event in {"message_sent", "message:sent"}:
@@ -92,11 +104,17 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
         message = str(payload.get("message") or payload.get("notification_type") or payload.get("reason") or "")
         if "permission" in message.lower() or "approval" in message.lower():
             return "approval_needed"
-        return None
-    if hook_event == "Stop":
+        return "attention_needed"
+    if hook_event in {"Stop", "SubagentStop"}:
         return "completion"
-    if hook_event in {"StopFailure", "SessionEnd"} and str(payload.get("reason") or payload.get("status") or "").lower() in {"failed", "error"}:
+    if hook_event == "StopFailure":
         return "failed"
+    if hook_event == "SessionEnd" and str(payload.get("reason") or payload.get("status") or "").lower() in {"failed", "error"}:
+        return "failed"
+    if hook_event in {"UserPromptSubmit", "SessionStart", "SubagentStart", "PreCompact", "PostCompact", "PostToolUse"}:
+        return "audit_only"
+    if "plan" in hook_event_lower and ("update" in hook_event_lower or "delta" in hook_event_lower):
+        return "attention_needed"
     return None
 
 

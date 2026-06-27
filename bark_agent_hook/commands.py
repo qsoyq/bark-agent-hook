@@ -85,6 +85,12 @@ def hook(
                 typer.echo("skip: unsupported hook event")
             return
 
+        if resolved_event == "audit_only":
+            _finish_audit_record(env, audit_record, status="logged_audit_only_event")
+            if dry_run:
+                typer.echo("logged: audit-only event")
+            return
+
         resolved_message = message
         if resolved_message is None and summary_mode == "extract":
             resolved_message = extract_summary(resolved_runtime, resolved_event, payload, summary_max_chars)

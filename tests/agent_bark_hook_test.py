@@ -987,7 +987,7 @@ def test_audit_log_distinguishes_skip_statuses(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
     monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
 
-    unsupported = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--dry-run"], input=json.dumps({"hook_event_name": "Notification", "session_id": "s-unsupported"}))
+    unsupported = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--dry-run"], input=json.dumps({"hook_event_name": "UnknownEvent", "session_id": "s-unsupported"}))
     missing_key = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"], input=json.dumps({"session_id": "s-missing"}))
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
     first = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"], input=json.dumps({"session_id": "s-duplicate"}))
@@ -1395,3 +1395,94 @@ def test_extract_redacts_secrets_url_queries_and_long_commands(monkeypatch, tmp_
     assert "[REDACTED]" in completion_body
     assert approval.exit_code == 0
     assert json.loads(approval.output)["body"] == "Shell 需要审批"
+
+
+def test_auto_event_maps_attention_notification(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "Notification", "message": "Plan ready for review", "session_id": "attention-notification"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Attention - demo-project"
+    assert body["body"] == "Plan ready for review"
+
+
+def test_auto_event_maps_plan_update_to_attention(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "turn/plan/updated", "summary": "Proposed plan is ready", "session_id": "attention-plan-update"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Attention - demo-project"
+    assert body["body"] == "Proposed plan is ready"
+
+
+def test_auto_event_maps_claude_ask_user_question_to_approval(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "PreToolUse", "tool_name": "AskUserQuestion", "message": "Choose a deployment target", "session_id": "ask-user-question"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Approval - demo-project"
+    assert body["body"] == "AskUserQuestion 需要审批"
+
+
+def test_audit_only_event_logs_without_bark_device_key(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.delenv("BARK_DEVICE_KEY", raising=False)
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "UserPromptSubmit", "prompt": "secret=do-not-log", "session_id": "audit-only"}),
+    )
+
+    assert result.exit_code == 0
+    assert "logged: audit-only event" in result.output
+    records = _read_jsonl(audit_log)
+    assert records[-1]["event"] == "audit_only"
+    assert records[-1]["status"] == "logged_audit_only_event"
+    assert "body_preview" not in records[-1]
+    assert "secret=do-not-log" not in audit_log.read_text()
+
+
+def test_permission_denied_is_attention_even_when_unsuccessful(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "PermissionDenied", "success": False, "reason": "Command was denied", "session_id": "permission-denied"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Attention - demo-project"
+    assert body["body"] == "Command was denied"

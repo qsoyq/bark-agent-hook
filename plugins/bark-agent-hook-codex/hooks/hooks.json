@@ -10,6 +10,116 @@
         ]
       }
     ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

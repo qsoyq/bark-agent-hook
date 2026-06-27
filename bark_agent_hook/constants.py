@@ -20,14 +20,18 @@ LODY_ICON_URL = "https://lody.ai/favicon.ico"
 DEFAULT_MESSAGES: dict[str, str] = {
     "completion": "任务已完成",
     "approval_needed": "需要你审批当前操作",
+    "attention_needed": "需要你继续处理当前会话",
     "failed": "本轮因错误停止",
+    "audit_only": "事件已记录",
 }
 
 
 EVENT_LABELS: dict[str, str] = {
     "completion": "Done",
     "approval_needed": "Approval",
+    "attention_needed": "Attention",
     "failed": "Failed",
+    "audit_only": "Audit",
 }
 
 
