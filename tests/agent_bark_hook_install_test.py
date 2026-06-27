@@ -370,6 +370,115 @@ def test_install_openclaw_fails_when_local_plugin_directory_is_missing(monkeypat
     assert "source checkout" in result.output
 
 
+def test_openclaw_installed_version_prefers_runtime_plugin_version(monkeypatch):
+    def fake_run(args, **kwargs):
+        if args == ["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"]:
+            return _Completed(args, stdout=json.dumps({"install": {"version": "0.1.5"}, "plugin": {"version": "0.1.1"}}))
+        return _Completed(args)
+
+    monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
+
+    assert agent_bark_installer._openclaw_installed_version() == "0.1.1"
+
+
+def test_install_openclaw_dedupes_stale_plugin_load_paths_and_refreshes_registry(monkeypatch, tmp_path):
+    calls = []
+    openclaw_versions = iter(["0.1.1", "0.1.5"])
+    current_plugin_dir = tmp_path / "current" / "bark-agent-hook-openclaw"
+    old_plugin_dir = tmp_path / "old" / "bark-agent-hook-openclaw"
+    other_plugin_dir = tmp_path / "other"
+    unknown_dir = tmp_path / "unknown"
+    for path in (current_plugin_dir, old_plugin_dir, other_plugin_dir, unknown_dir):
+        path.mkdir(parents=True)
+    (current_plugin_dir / "openclaw.plugin.json").write_text(json.dumps({"id": "bark-agent-hook-openclaw", "version": "0.1.5"}))
+    (old_plugin_dir / "openclaw.plugin.json").write_text(json.dumps({"id": "bark-agent-hook-openclaw", "version": "0.1.1"}))
+    (other_plugin_dir / "openclaw.plugin.json").write_text(json.dumps({"id": "other-plugin", "version": "2.0.0"}))
+
+    def fake_which(command):
+        return "/usr/local/bin/openclaw" if command == "openclaw" else None
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs.get("input")))
+        if args == ["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"]:
+            version = next(openclaw_versions)
+            return _Completed(args, stdout=json.dumps({"plugin": {"version": version}, "install": {"version": "0.1.5"}}))
+        if args == ["openclaw", "config", "get", "plugins.load.paths", "--json"]:
+            return _Completed(
+                args,
+                stdout=json.dumps(
+                    [
+                        str(old_plugin_dir),
+                        str(current_plugin_dir),
+                        str(current_plugin_dir),
+                        str(other_plugin_dir),
+                        str(unknown_dir),
+                    ]
+                ),
+            )
+        return _Completed(args)
+
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
+    monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
+    monkeypatch.setattr(agent_bark_installer, "_openclaw_plugin_dir", lambda: current_plugin_dir)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["install", "--agent", "openclaw"])
+
+    assert result.exit_code == 0
+    assert "updated" in result.output
+    assert "0.1.1 -> 0.1.5" in result.output
+    patch_payloads = [json.loads(input_text) for args, input_text in calls if args == ["openclaw", "config", "patch", "--stdin"] and input_text]
+    load_path_patches = [payload for payload in patch_payloads if "load" in payload.get("plugins", {})]
+    assert load_path_patches == [
+        {
+            "plugins": {
+                "load": {
+                    "paths": [
+                        str(current_plugin_dir),
+                        str(other_plugin_dir),
+                        str(unknown_dir),
+                    ]
+                }
+            }
+        }
+    ]
+    called_args = [args for args, _ in calls]
+    assert ["openclaw", "plugins", "install", "--link", str(current_plugin_dir)] in called_args
+    assert ["openclaw", "plugins", "registry", "--refresh", "--json"] in called_args
+    assert called_args.index(["openclaw", "plugins", "registry", "--refresh", "--json"]) < called_args.index(["openclaw", "gateway", "restart"])
+
+
+def test_install_openclaw_keeps_idempotent_single_current_plugin_path(monkeypatch, tmp_path):
+    calls = []
+    openclaw_versions = iter(["0.1.5", "0.1.5"])
+    current_plugin_dir = tmp_path / "current" / "bark-agent-hook-openclaw"
+    current_plugin_dir.mkdir(parents=True)
+    (current_plugin_dir / "openclaw.plugin.json").write_text(json.dumps({"id": "bark-agent-hook-openclaw", "version": "0.1.5"}))
+
+    def fake_which(command):
+        return "/usr/local/bin/openclaw" if command == "openclaw" else None
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs.get("input")))
+        if args == ["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"]:
+            version = next(openclaw_versions)
+            return _Completed(args, stdout=json.dumps({"plugin": {"version": version}}))
+        if args == ["openclaw", "config", "get", "plugins.load.paths", "--json"]:
+            return _Completed(args, stdout=json.dumps([str(current_plugin_dir)]))
+        return _Completed(args)
+
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
+    monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
+    monkeypatch.setattr(agent_bark_installer, "_openclaw_plugin_dir", lambda: current_plugin_dir)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["install", "--agent", "openclaw"])
+
+    assert result.exit_code == 0
+    assert "unchanged" in result.output
+    patch_payloads = [json.loads(input_text) for args, input_text in calls if args == ["openclaw", "config", "patch", "--stdin"] and input_text]
+    assert {"plugins": {"load": {"paths": [str(current_plugin_dir)]}}} not in patch_payloads
+    assert ["openclaw", "plugins", "registry", "--refresh", "--json"] in [args for args, _ in calls]
+
+
 def test_install_handles_invalid_json_versions(monkeypatch):
     def fake_which(command):
         return "/opt/homebrew/bin/codex" if command == "codex" else None
