@@ -56,16 +56,23 @@ def test_codex_bark_plugin_hook_config_uses_codex_schema():
     plugin_root = Path("plugins/bark-agent-hook-codex")
     hook_config = json.loads((plugin_root / "hooks/hooks.json").read_text())
 
+    approval_command = "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract"
+    attention_command = "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
+    audit_command = "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+    auto_command = "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
+    completion_command = "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+
+    commands = {name: entries[0]["hooks"][0]["command"] for name, entries in hook_config["hooks"].items()}
     permission_hook = hook_config["hooks"]["PermissionRequest"][0]["hooks"][0]
-    stop_hook = hook_config["hooks"]["Stop"][0]["hooks"][0]
-    assert permission_hook == {
-        "type": "command",
-        "command": "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract",
-    }
-    assert stop_hook == {
-        "type": "command",
-        "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract",
-    }
+    assert permission_hook == {"type": "command", "command": approval_command}
+    assert commands["Notification"] == auto_command
+    assert commands["Elicitation"] == attention_command
+    assert commands["PermissionDenied"] == attention_command
+    for event_name in ("UserPromptSubmit", "SessionStart", "PostToolUse", "PreCompact", "PostCompact", "SubagentStart"):
+        assert commands[event_name] == audit_command
+    assert commands["PreToolUse"] == auto_command
+    assert commands["SubagentStop"] == completion_command
+    assert commands["Stop"] == completion_command
 
 
 def test_claude_bark_plugin_hook_config_catches_user_questions():
@@ -73,18 +80,24 @@ def test_claude_bark_plugin_hook_config_catches_user_questions():
     hook_config = json.loads((plugin_root / "hooks/hooks.json").read_text())
 
     approval_command = "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
+    attention_command = "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
+    audit_command = "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
+    auto_command = "bark-agent-hook hook --runtime claude --event auto --summary-mode extract"
     completion_command = "bark-agent-hook hook --runtime claude --event completion --summary-mode extract"
+    failed_command = "bark-agent-hook hook --runtime claude --event failed --summary-mode extract"
 
+    commands = {name: entries[0]["hooks"][0]["command"] for name, entries in hook_config["hooks"].items()}
     permission_hook = hook_config["hooks"]["PermissionRequest"][0]["hooks"][0]
-    notification_hook = hook_config["hooks"]["Notification"][0]["hooks"][0]
-    ask_user_question_hook = hook_config["hooks"]["PreToolUse"][0]
-    stop_hook = hook_config["hooks"]["Stop"][0]["hooks"][0]
-
     assert permission_hook == {"type": "command", "command": approval_command}
-    assert notification_hook == {"type": "command", "command": approval_command}
-    assert ask_user_question_hook["matcher"] == "AskUserQuestion"
-    assert ask_user_question_hook["hooks"][0] == {"type": "command", "command": approval_command}
-    assert stop_hook == {"type": "command", "command": completion_command}
+    assert commands["Notification"] == auto_command
+    assert commands["PreToolUse"] == auto_command
+    for event_name in ("UserPromptSubmit", "PostToolUse", "PreCompact", "SessionStart"):
+        assert commands[event_name] == audit_command
+    for event_name in ("PermissionDenied", "Elicitation", "MessageDisplay"):
+        assert commands[event_name] == attention_command
+    assert commands["StopFailure"] == failed_command
+    assert commands["SubagentStop"] == completion_command
+    assert commands["Stop"] == completion_command
 
 
 def test_bark_plugin_versions_match_project_version():
