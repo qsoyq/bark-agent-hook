@@ -9,6 +9,8 @@ from typing import Any
 from bark_agent_hook.constants import OPENCLAW_CONVERSATION_ACCESS_PATCH
 from bark_agent_hook.models import AgentOption, CommandResult, InstallResult, InstallStatus
 
+OPENCLAW_PLUGIN_ID = "bark-agent-hook-openclaw"
+
 
 def _run_install_command(args: list[str], *, input_text: str | None = None) -> CommandResult:
     proc = subprocess.run(
@@ -105,7 +107,13 @@ def _find_version(value: Any) -> str | None:
 
 
 def _openclaw_installed_version() -> str | None:
-    data = _json_from_command(["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"])
+    data = _json_from_command(["openclaw", "plugins", "inspect", OPENCLAW_PLUGIN_ID, "--runtime", "--json"])
+    if isinstance(data, dict):
+        plugin = data.get("plugin")
+        if isinstance(plugin, dict):
+            version = plugin.get("version")
+            if version is not None and not isinstance(version, dict | list):
+                return str(version)
     return _find_version(data)
 
 
@@ -142,6 +150,59 @@ def _uninstall_version_change(before: str | None, after: str | None) -> InstallS
 
 def _openclaw_plugin_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "plugins" / "bark-agent-hook-openclaw"
+
+
+def _read_openclaw_plugin_id(plugin_dir: Path) -> str | None:
+    manifest_path = plugin_dir / "openclaw.plugin.json"
+    try:
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    plugin_id = data.get("id")
+    return str(plugin_id) if plugin_id is not None and not isinstance(plugin_id, dict | list) else None
+
+
+def _same_openclaw_plugin_path(left: Path, right: Path) -> bool:
+    return left.expanduser().resolve() == right.expanduser().resolve()
+
+
+def _dedupe_openclaw_plugin_load_paths(plugin_dir: Path) -> None:
+    data = _json_from_command(["openclaw", "config", "get", "plugins.load.paths", "--json"])
+    if not isinstance(data, list):
+        return
+
+    configured_paths = [item for item in data if isinstance(item, str) and item.strip()]
+    plugin_dir_text = str(plugin_dir)
+    kept_paths: list[str] = []
+    current_path_seen = False
+    changed = len(configured_paths) != len(data)
+
+    for configured_path in configured_paths:
+        path = Path(configured_path)
+        if _same_openclaw_plugin_path(path, plugin_dir):
+            if current_path_seen:
+                changed = True
+                continue
+            current_path_seen = True
+            if configured_path != plugin_dir_text:
+                changed = True
+            kept_paths.append(plugin_dir_text)
+            continue
+
+        if _read_openclaw_plugin_id(path) == OPENCLAW_PLUGIN_ID:
+            changed = True
+            continue
+        kept_paths.append(configured_path)
+
+    if not current_path_seen:
+        kept_paths.append(plugin_dir_text)
+        changed = True
+    if not changed:
+        return
+
+    _run_required(["openclaw", "config", "patch", "--stdin"], input_text=json.dumps({"plugins": {"load": {"paths": kept_paths}}}))
 
 
 def _install_codex(cli_path: str) -> InstallResult:
@@ -187,8 +248,10 @@ def _install_openclaw(cli_path: str) -> InstallResult:
         )
     try:
         _run_required_idempotent(["openclaw", "plugins", "install", "--link", str(plugin_dir)])
-        _run_required_idempotent(["openclaw", "plugins", "enable", "bark-agent-hook-openclaw"])
+        _dedupe_openclaw_plugin_load_paths(plugin_dir)
+        _run_required_idempotent(["openclaw", "plugins", "enable", OPENCLAW_PLUGIN_ID])
         _run_required(["openclaw", "config", "patch", "--stdin"], input_text=OPENCLAW_CONVERSATION_ACCESS_PATCH)
+        _run_required(["openclaw", "plugins", "registry", "--refresh", "--json"])
         _run_required(["openclaw", "gateway", "restart"])
     except RuntimeError as e:
         return InstallResult("OpenClaw", "failed", before, None, cli_path, str(e), _extract_command_from_error(str(e)))
