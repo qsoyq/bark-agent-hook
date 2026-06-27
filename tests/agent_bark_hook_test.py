@@ -270,6 +270,86 @@ def test_bark_group_overrides_group_mode(monkeypatch, tmp_path):
     assert json.loads(result.output)["group"] == "agents"
 
 
+def test_bark_group_template_renders_project(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "{project}")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"project_name": "Readable Project", "session_id": "group-template-project"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "Readable Project"
+
+
+def test_bark_group_template_renders_project_and_branch(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "{project}@{branch}")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"project_name": "Readable Project", "branch": "refs/heads/feature/group-template", "session_id": "group-template-branch"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "Readable Project@feature/group-template"
+
+
+def test_bark_group_template_renders_notification_values(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "{agent}/{runtime}/{event}/{cwd_basename}/{session}")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/path-basename", "session_name": "Focus", "session_id": "group-template-values"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "Codex/codex/Done/path-basename/Focus"
+
+
+def test_bark_group_template_keeps_unknown_variables(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "{project}/{missing}")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"project_name": "Readable Project", "session_id": "group-template-missing"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "Readable Project/{missing}"
+
+
+def test_invalid_bark_group_template_uses_configured_value(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "{project")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"project_name": "Readable Project", "session_id": "group-template-invalid"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "{project"
+
+
 def test_invalid_group_mode_environment_value_fails(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")

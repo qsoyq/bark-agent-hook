@@ -35,7 +35,7 @@ from bark_agent_hook.summary import _normalized_payload_text
 from bark_agent_hook.utils import _env_value, _hook_event_name, _payload_value
 
 
-class _SafeTitleVars(dict[str, str]):
+class _SafeTemplateVars(dict[str, str]):
     def __missing__(self, key: str) -> str:
         return "{" + key + "}"
 
@@ -49,7 +49,7 @@ def _default_title(values: dict[str, str]) -> str:
 
 
 def notification_title(*, runtime: str, identity: AgentIdentity, event: str, payload: dict[str, Any], env: dict[str, str], lody_settings: LodySettings, cwd: Path | None = None) -> str:
-    values = _SafeTitleVars(
+    values = _SafeTemplateVars(
         agent=identity.name,
         event=event_label(event),
         project=title_project_name(runtime, payload, env, cwd),
@@ -62,7 +62,7 @@ def notification_title(*, runtime: str, identity: AgentIdentity, event: str, pay
     configured_template = env.get(TITLE_TEMPLATE_ENV, "").strip()
     if not configured_template:
         title = _default_title(values)
-        return title or _default_title(_SafeTitleVars(agent=identity.name, event=event_label(event)))
+        return title or _default_title(_SafeTemplateVars(agent=identity.name, event=event_label(event)))
     try:
         title = configured_template.format_map(values)
     except ValueError:
@@ -147,15 +147,32 @@ def resolve_group_mode(cli_group_mode: GroupModeOption | None, env: dict[str, st
 
 def notification_group(
     *,
+    runtime: str,
     identity: AgentIdentity,
+    event: str,
     payload: dict[str, Any],
     env: dict[str, str],
+    lody_settings: LodySettings,
     group_mode: GroupMode,
     cwd: Path | None = None,
 ) -> str | None:
     configured_group = _env_value(env, "BARK_GROUP")
     if configured_group:
-        return configured_group
+        values = _SafeTemplateVars(
+            agent=identity.name,
+            event=event_label(event),
+            project=project_name(payload, cwd),
+            runtime=runtime,
+            cwd_basename=cwd_basename(payload, cwd),
+            branch=branch_name(payload, env, cwd),
+            session=session_name(payload, env),
+        )
+        values.update(lody_settings.template_values())
+        try:
+            rendered = configured_group.format_map(values)
+        except ValueError:
+            return configured_group
+        return " ".join(rendered.split()) or None
 
     if group_mode == "agent":
         return identity.name
@@ -329,7 +346,7 @@ def build_notification(
     title = notification_title(runtime=runtime, identity=identity, event=event, payload=payload, env=env, lody_settings=lody_settings, cwd=cwd)
     bark_server = _env_value(env, "BARK_SERVER", "https://api.day.app")
     dedupe_key = build_dedupe_key(runtime, event, payload, body)
-    group = notification_group(identity=identity, payload=payload, env=env, group_mode=group_mode, cwd=cwd)
+    group = notification_group(runtime=runtime, identity=identity, event=event, payload=payload, env=env, lody_settings=lody_settings, group_mode=group_mode, cwd=cwd)
     return Notification(
         title=title,
         body=body,

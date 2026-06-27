@@ -81,7 +81,7 @@ Common optional settings:
 
 ```shell
 BARK_SERVER=https://api.day.app
-BARK_GROUP=
+BARK_GROUP={project}
 AGENT_BARK_NOTIFY_GROUP_MODE=agent
 AGENT_BARK_NOTIFY_HOOK_URL=
 AGENT_BARK_NOTIFY_TITLE_TEMPLATE=
@@ -100,6 +100,8 @@ The default title is intentionally compact:
 ```
 
 Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`.
+
+Use `BARK_GROUP` as either a fixed Bark group or a group template. Available group values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`. For example, `BARK_GROUP={project}` groups notifications by project, and `BARK_GROUP={project}@{branch}` groups them by project and branch. Group and title variables are not URL-encoded.
 
 ## Hook Commands
 

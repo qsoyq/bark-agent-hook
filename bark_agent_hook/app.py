@@ -34,7 +34,7 @@ Direct plugin install commands:
 
 Configuration:
   BARK_DEVICE_KEY is required. Missing or empty means skip and exit 0.
-  BARK_GROUP is optional and overrides the computed Bark group.
+  BARK_GROUP is optional and overrides the computed Bark group. It may be a fixed value or template.
   BARK_SERVER defaults to https://api.day.app.
   AGENT_BARK_NOTIFY_HOOK_URL optionally sets a Bark click URL template.
   AGENT_BARK_NOTIFY_TITLE_TEMPLATE optionally sets a notification title template.
@@ -48,13 +48,18 @@ Template variables:
     {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
     {LODY_WORKSPACE_SESSION_ID}.
     Example: AGENT_BARK_NOTIFY_TITLE_TEMPLATE='[{agent}][{event}][{LODY_SESSION_ID}]'
+  BARK_GROUP supports:
+    {agent}, {event}, {project}, {branch}, {session}, {runtime}, {cwd_basename},
+    {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
+    {LODY_WORKSPACE_SESSION_ID}.
+    Example: BARK_GROUP='{project}@{branch}'
   AGENT_BARK_NOTIFY_HOOK_URL supports:
     {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
     {session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id},
     {workspace_dir}, {cwd_basename}, {LODY_ELECTRON_BOOTSTRAP},
     {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID}, {LODY_WORKSPACE_SESSION_ID}.
     Example: AGENT_BARK_NOTIFY_HOOK_URL='https://lody.ai/users/{LODY_ELECTRON_SESSION_USER_ID}/sessions/{LODY_SESSION_ID}'
-  Hook URL variable values are percent-encoded; title variables are not URL-encoded.
+  Hook URL variable values are percent-encoded; title and group variables are not URL-encoded.
   Lody passthrough variables are read from LodySettings and limited to the four LODY_* keys above.
 
 Audit log field sources:
