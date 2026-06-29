@@ -91,6 +91,8 @@ AGENT_BARK_NOTIFY_AUDIT_LOG_FILE=~/.bark-agent-hook/bark-agent-hook.log
 
 The `AGENT_BARK_NOTIFY_*` variable names are intentionally preserved for compatibility with existing hook configuration.
 
+Audit JSONL records include best-effort diagnostics for install troubleshooting, including `bark_agent_hook_version` and `command_dir`. These fields are not included in Bark notification text, click URLs, or duplicate detection keys.
+
 Notifications are sent with Bark's Markdown field by default. The short `body` summary is still produced for dry-run output, duplicate detection, audit metadata, and future compatibility fallbacks, but real Bark requests send `markdown` when available.
 
 The default title is intentionally compact:

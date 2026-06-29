@@ -1,9 +1,13 @@
+import importlib.metadata
 import json
+import sys
+from pathlib import Path
 from urllib.parse import parse_qs
 
 import httpx
 from typer.testing import CliRunner
 
+from bark_agent_hook import audit as agent_bark_audit
 from bark_agent_hook import hook as agent_bark_hook
 
 runner = CliRunner()
@@ -54,6 +58,33 @@ def _clear_agent_env(monkeypatch):
 
 def _read_jsonl(path):
     return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def test_command_dir_uses_explicit_executable_path(tmp_path):
+    executable = tmp_path / "bin" / "bark-agent-hook"
+
+    assert agent_bark_audit._command_dir(str(executable)) == str(executable.parent.resolve())
+
+
+def test_command_dir_uses_path_lookup(monkeypatch, tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    executable = bin_dir / "bark-agent-hook"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+
+    assert agent_bark_audit._command_dir("bark-agent-hook") == str(bin_dir.resolve())
+
+
+def test_command_dir_returns_none_when_unavailable(monkeypatch):
+    monkeypatch.setenv("PATH", "")
+
+    assert agent_bark_audit._command_dir("missing-bark-agent-hook") is None
+
+
+def test_package_version_returns_none_when_distribution_is_missing():
+    assert agent_bark_audit._package_version("missing-bark-agent-hook-test-distribution") is None
 
 
 def test_dry_run_reports_missing_device_key(monkeypatch, tmp_path):
@@ -717,6 +748,8 @@ def test_audit_log_records_sent_metadata_without_secrets(monkeypatch, tmp_path):
     record = records[0]
     assert record["status"] == "sent"
     assert record["project"] == "demo-project"
+    assert record["bark_agent_hook_version"] == importlib.metadata.version("bark-agent-hook")
+    assert record["command_dir"] == str(Path(sys.argv[0]).resolve().parent)
     assert record["title"] == "Done - demo-project"
     assert record["body_len"] == len("done with token=secret")
     assert record["body_preview"] == "done with token=[REDACTED]"

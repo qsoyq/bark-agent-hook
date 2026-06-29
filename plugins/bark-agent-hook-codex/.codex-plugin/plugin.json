@@ -1,6 +1,6 @@
 {
   "name": "bark-agent-hook-codex",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Send Bark notifications from Codex lifecycle hooks through bark-agent-hook.",
   "author": {
     "name": "qsoyq"
