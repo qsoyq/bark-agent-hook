@@ -1060,6 +1060,24 @@ def test_duplicate_event_is_skipped(monkeypatch, tmp_path):
     assert "duplicate notification" in second.output
 
 
+def test_duplicate_approval_event_is_not_skipped(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+    payload = json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "PermissionRequest", "session_id": "goal-session"})
+
+    first = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--event", "approval_needed", "--summary-mode", "extract", "--dry-run"], input=payload)
+    second = runner.invoke(agent_bark_hook.cmd, ["hook", "--runtime", "codex", "--event", "approval_needed", "--summary-mode", "extract", "--dry-run"], input=payload)
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    assert "duplicate notification" not in second.output
+    assert [record["status"] for record in _read_jsonl(audit_log)] == ["sent", "sent"]
+
+
 def test_audit_log_distinguishes_skip_statuses(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     audit_log = tmp_path / "audit.jsonl"
