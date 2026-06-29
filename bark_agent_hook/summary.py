@@ -14,6 +14,7 @@ from bark_agent_hook.constants import (
     SENSITIVE_KEY_RE,
     SHELL_PREFIX_RE,
 )
+from bark_agent_hook.runtime import USER_INPUT_TOOL_NAMES
 
 
 def _strip_url_query(value: str) -> str:
@@ -179,6 +180,32 @@ def _approval_tool_summary(tool_name: str | None, detail: str | None, max_chars:
     return clean_summary_text(f"需要审批：{detail}", max_chars)
 
 
+def _tool_name(payload: dict[str, Any]) -> str | None:
+    return _extract_text(payload.get("tool_name") or payload.get("toolName") or payload.get("tool") or payload.get("name"))
+
+
+def _user_input_question_summary(tool_input: dict[str, Any], max_chars: int) -> str | None:
+    questions = tool_input.get("questions")
+    if not isinstance(questions, list):
+        return None
+
+    question_texts: list[str] = []
+    for item in questions:
+        if not isinstance(item, dict):
+            continue
+        text = clean_summary_text(_extract_text(item.get("question")), max_chars)
+        if text:
+            question_texts.append(text)
+
+    if not question_texts:
+        return None
+
+    first_question = question_texts[0]
+    if len(question_texts) == 1:
+        return first_question
+    return clean_summary_text(f"{first_question} 等 {len(question_texts)} 个问题", max_chars)
+
+
 def extract_summary(runtime: str, event: str, payload: dict[str, Any], max_chars: int) -> str | None:
     if event == "completion":
         for candidate in (
@@ -200,6 +227,11 @@ def extract_summary(runtime: str, event: str, payload: dict[str, Any], max_chars
         tool_input = _extract_dict(payload.get("tool_input"))
         if not tool_input:
             tool_input = _extract_dict(payload.get("params"))
+        tool_name = _tool_name(payload)
+        if tool_name in USER_INPUT_TOOL_NAMES:
+            question_summary = _user_input_question_summary(tool_input, max_chars)
+            if question_summary:
+                return question_summary
         require_approval = _extract_dict(payload.get("requireApproval"))
         approval = _extract_dict(payload.get("approval"))
         for candidate in (
@@ -214,7 +246,6 @@ def extract_summary(runtime: str, event: str, payload: dict[str, Any], max_chars
         description = clean_summary_text(_extract_text(tool_input.get("description")), max_chars)
         if description:
             return description
-        tool_name = _extract_text(payload.get("tool_name") or payload.get("toolName"))
         detail = _safe_tool_detail(tool_input)
         summary = _approval_tool_summary(tool_name, detail, max_chars)
         if summary:

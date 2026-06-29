@@ -20,6 +20,9 @@ from bark_agent_hook.constants import (
 from bark_agent_hook.models import AgentIdentity, Event, Runtime
 from bark_agent_hook.settings import LodySettings
 
+USER_INPUT_TOOL_NAMES = {"request_user_input", "functions.request_user_input"}
+TOOL_CALL_EVENT_NAMES = {"ToolCall", "tool_call", "FunctionCall", "function_call", "FunctionCallOutput", "function_call_output", "tool_call_output"}
+
 
 def _read_stdin() -> str:
     try:
@@ -83,15 +86,17 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
 
     hook_event = str(payload.get("hook_event_name") or payload.get("event") or payload.get("event_name") or payload.get("type") or "")
     hook_event_lower = hook_event.lower()
-    if payload.get("success") is False and hook_event not in {"PermissionDenied"}:
-        return "failed"
     if hook_event in {"PermissionRequest", "approval_needed", "approval-needed", "approval:needed", "before_tool_call"}:
         return "approval_needed"
     if hook_event == "PreToolUse":
         tool_name = str(payload.get("tool_name") or payload.get("toolName") or payload.get("tool") or payload.get("name") or "")
-        if tool_name == "AskUserQuestion":
+        if tool_name == "AskUserQuestion" or tool_name in USER_INPUT_TOOL_NAMES:
             return "approval_needed"
         return "audit_only"
+    if hook_event == "PostToolUse" or hook_event in TOOL_CALL_EVENT_NAMES:
+        return "audit_only"
+    if payload.get("success") is False and hook_event not in {"PermissionDenied"}:
+        return "failed"
     if hook_event in {"Elicitation", "PermissionDenied", "MessageDisplay"}:
         return "attention_needed"
     if hook_event in {"plan_update", "plan_delta", "turn/plan/updated", "TurnPlanUpdatedNotification", "PlanDeltaNotification"}:
@@ -111,7 +116,7 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
         return "failed"
     if hook_event == "SessionEnd" and str(payload.get("reason") or payload.get("status") or "").lower() in {"failed", "error"}:
         return "failed"
-    if hook_event in {"UserPromptSubmit", "SessionStart", "SubagentStart", "PreCompact", "PostCompact", "PostToolUse"}:
+    if hook_event in {"UserPromptSubmit", "SessionStart", "SubagentStart", "PreCompact", "PostCompact"}:
         return "audit_only"
     if "plan" in hook_event_lower and ("update" in hook_event_lower or "delta" in hook_event_lower):
         return "attention_needed"
