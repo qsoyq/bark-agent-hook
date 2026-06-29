@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import importlib.metadata
 import json
+import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -33,6 +36,34 @@ def _audit_log_path(env: dict[str, str]) -> Path:
     if configured:
         return Path(configured).expanduser()
     return DEFAULT_AUDIT_LOG_PATH.expanduser()
+
+
+def _package_version(distribution_name: str = "bark-agent-hook") -> str | None:
+    try:
+        return importlib.metadata.version(distribution_name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _command_dir(argv0: str | None = None) -> str | None:
+    command = argv0 if argv0 is not None else sys.argv[0]
+    if not command:
+        return None
+
+    command_path = Path(command).expanduser()
+    if command_path.name != command:
+        try:
+            return str(command_path.resolve().parent)
+        except (OSError, RuntimeError):
+            return None
+
+    found = shutil.which(command)
+    if found is None:
+        return None
+    try:
+        return str(Path(found).resolve().parent)
+    except (OSError, RuntimeError):
+        return None
 
 
 def _safe_error_message(error: BaseException) -> str:
@@ -73,6 +104,8 @@ def _new_audit_record(
         "time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "runtime": runtime,
         "event": event,
+        "bark_agent_hook_version": _package_version(),
+        "command_dir": _command_dir(),
         "hook_event_name": _hook_event_name(payload),
         "status": None,
         "project": project_name(payload, cwd),
