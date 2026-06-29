@@ -15,6 +15,7 @@ from bark_agent_hook.notification import (
     build_notification,
     resolve_group_mode,
     send_bark,
+    should_dedupe_notification,
     skip_notification_reason,
 )
 from bark_agent_hook.output import (
@@ -117,7 +118,7 @@ def hook(
                 typer.echo("skip: BARK_DEVICE_KEY is missing")
             return
 
-        if not no_dedupe and already_sent(notification.dedupe_key, env):
+        if not no_dedupe and should_dedupe_notification(resolved_runtime, resolved_event, payload) and already_sent(notification.dedupe_key, env):
             _finish_audit_record(env, audit_record, status="skipped_duplicate", notification=notification)
             if dry_run:
                 typer.echo("skip: duplicate notification")

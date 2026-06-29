@@ -326,6 +326,12 @@ def already_sent(dedupe_key: str, env: dict[str, str], *, now: float | None = No
     return False
 
 
+def should_dedupe_notification(runtime: str, event: str, payload: dict[str, Any]) -> bool:
+    if event == "approval_needed":
+        return False
+    return True
+
+
 def build_notification(
     *,
     runtime: str,
