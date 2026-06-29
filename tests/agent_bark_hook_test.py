@@ -760,6 +760,77 @@ def test_audit_log_records_sent_metadata_without_secrets(monkeypatch, tmp_path):
     assert "lody" not in record
 
 
+def test_audit_log_records_non_notifying_tool_call_metadata(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.delenv("BARK_DEVICE_KEY", raising=False)
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "cwd": "/tmp/demo-project",
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_call_id": "call-secret-id",
+                "tool_input": {"command": "printf 'token=super-secret' && curl https://example.test/path?token=secret"},
+                "session_id": "audit-tool-call",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    assert "logged: audit-only event" in result.output
+    record = _read_jsonl(audit_log)[0]
+    assert record["event"] == "audit_only"
+    assert record["status"] == "logged_audit_only_event"
+    assert record["tool_name"] == "Bash"
+    assert record["tool_call_id_hash"]
+    assert record["tool_command_len"] == len("printf 'token=super-secret' && curl https://example.test/path?token=secret")
+    raw_record = json.dumps(record)
+    assert "super-secret" not in raw_record
+    assert "https://example.test/path?token=secret" not in raw_record
+    assert "body_preview" not in record
+
+
+def test_audit_log_records_post_tool_call_status_metadata(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "cwd": "/tmp/demo-project",
+                "hook_event_name": "PostToolUse",
+                "toolName": "Bash",
+                "callId": "call-1",
+                "success": False,
+                "exit_code": "2",
+                "error": "request failed with token=secret-value",
+                "session_id": "audit-post-tool-call",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    record = _read_jsonl(audit_log)[0]
+    assert record["event"] == "audit_only"
+    assert record["tool_name"] == "Bash"
+    assert record["tool_status"] == "failed"
+    assert record["exit_code"] == 2
+    assert record["tool_result_summary"] == "request failed with token=[REDACTED]"
+    assert "secret-value" not in json.dumps(record)
+
+
 def test_audit_log_records_failed_body_preview(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     audit_log = tmp_path / "audit.jsonl"
@@ -1577,6 +1648,118 @@ def test_auto_event_maps_claude_ask_user_question_to_approval(monkeypatch, tmp_p
     body = json.loads(result.output)
     assert body["title"] == "Approval - demo-project"
     assert body["body"] == "AskUserQuestion 需要审批"
+
+
+def test_auto_event_maps_codex_request_user_input_to_approval(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "cwd": "/tmp/demo-project",
+                "hook_event_name": "PreToolUse",
+                "tool_name": "request_user_input",
+                "tool_input": {
+                    "questions": [
+                        {
+                            "header": "版本号",
+                            "id": "version_target",
+                            "question": "这次版本升级目标用哪个？",
+                            "options": [
+                                {"label": "0.5.0 (Recommended)", "description": "minor version"},
+                                {"label": "0.4.5", "description": "patch version"},
+                            ],
+                        },
+                        {
+                            "header": "提交方式",
+                            "id": "submit_to_master",
+                            "question": "提交到 master 的方式如何处理？",
+                            "options": [
+                                {"label": "分支 PR (Recommended)", "description": "create a release branch"},
+                                {"label": "直接 master", "description": "commit directly"},
+                            ],
+                        },
+                    ]
+                },
+                "session_id": "request-user-input",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Approval - demo-project"
+    assert body["body"] == "这次版本升级目标用哪个？ 等 2 个问题"
+
+
+def test_auto_event_maps_codex_functions_request_user_input_alias(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "cwd": "/tmp/demo-project",
+                "hook_event_name": "PreToolUse",
+                "toolName": "functions.request_user_input",
+                "params": {"questions": [{"question": "选择部署目标？"}]},
+                "session_id": "functions-request-user-input",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert body["title"] == "Approval - demo-project"
+    assert body["body"] == "选择部署目标？"
+
+
+def test_request_user_input_audit_records_tool_name_without_option_details(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    audit_log = tmp_path / "audit.jsonl"
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG", "1")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_AUDIT_LOG_FILE", str(audit_log))
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps(
+            {
+                "cwd": "/tmp/demo-project",
+                "hook_event_name": "PreToolUse",
+                "tool_name": "request_user_input",
+                "tool_call_id": "call-request-user-input",
+                "tool_input": {
+                    "questions": [
+                        {
+                            "question": "这次版本升级目标用哪个？",
+                            "options": [{"label": "secret-token-option", "description": "should not be logged"}],
+                        }
+                    ]
+                },
+                "session_id": "request-user-input-audit",
+            }
+        ),
+    )
+
+    assert result.exit_code == 0
+    record = _read_jsonl(audit_log)[0]
+    assert record["status"] == "sent"
+    assert record["tool_name"] == "request_user_input"
+    assert record["tool_call_id_hash"]
+    assert record["tool_question_count"] == 1
+    assert record["tool_input_summary"] == "这次版本升级目标用哪个？"
+    assert record["body_preview"] == "这次版本升级目标用哪个？"
+    assert "secret-token-option" not in json.dumps(record)
 
 
 def test_audit_only_event_logs_without_bark_device_key(monkeypatch, tmp_path):

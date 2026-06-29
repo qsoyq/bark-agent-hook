@@ -91,7 +91,7 @@ AGENT_BARK_NOTIFY_AUDIT_LOG_FILE=~/.bark-agent-hook/bark-agent-hook.log
 
 The `AGENT_BARK_NOTIFY_*` variable names are intentionally preserved for compatibility with existing hook configuration.
 
-Audit JSONL records include best-effort diagnostics for install troubleshooting, including `bark_agent_hook_version` and `command_dir`. These fields are not included in Bark notification text, click URLs, or duplicate detection keys.
+Audit JSONL records include best-effort diagnostics for install troubleshooting, including `bark_agent_hook_version` and `command_dir`. Tool lifecycle records also include safe debugging metadata such as `tool_name`, hashed tool call ids, status, exit code, command length, question count, and sanitized summaries where available. These fields are not included in Bark notification text, click URLs, or duplicate detection keys.
 
 Notifications are sent with Bark's Markdown field by default. The short `body` summary is still produced for dry-run output, duplicate detection, audit metadata, and future compatibility fallbacks, but real Bark requests send `markdown` when available.
 
@@ -121,9 +121,9 @@ bark-agent-hook hook --runtime claude --event completion --summary-mode extract
 bark-agent-hook hook --runtime openclaw --event completion --summary-mode extract
 ```
 
-Codex and Claude Code hook payloads are grouped into notification events before delivery. Approval and explicit user-input events map to `approval_needed`, user-visible attention events such as notifications, elicitations, permission denials, or plan update payloads map to `attention_needed`, successful stop events map to `completion`, failures map to `failed`, and high-volume lifecycle or tool pipeline events map to `audit_only`.
+Codex and Claude Code hook payloads are grouped into notification events before delivery. Approval and explicit user-input events, including Codex `request_user_input` tool calls, map to `approval_needed`, user-visible attention events such as notifications, elicitations, permission denials, or plan update payloads map to `attention_needed`, successful stop events map to `completion`, failures map to `failed`, and high-volume lifecycle or tool pipeline events map to `audit_only`.
 
-`audit_only` events never call Bark; when audit logging is enabled they are recorded with `logged_audit_only_event`. This keeps prompt submissions, session starts, compact events, and ordinary tool use available for diagnostics without creating notification noise.
+`audit_only` events never call Bark; when audit logging is enabled they are recorded with `logged_audit_only_event`. This keeps prompt submissions, session starts, compact events, and ordinary non-notifying tool use available for diagnostics without creating notification noise.
 
 Codex app builds may expose plan changes internally as `turn/plan/updated`, `plan_update`, or `plan_delta` rather than as a public plugin hook. `bark-agent-hook` recognizes those payload names when it receives them, but direct Plan Mode coverage depends on Codex exposing the corresponding public hook event to installed plugins.
 

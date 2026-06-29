@@ -16,7 +16,7 @@ from bark_agent_hook.constants import (
     SENSITIVE_ASSIGNMENT_RE,
 )
 from bark_agent_hook.models import Notification, SummaryMode
-from bark_agent_hook.runtime import project_name
+from bark_agent_hook.runtime import TOOL_CALL_EVENT_NAMES, project_name
 from bark_agent_hook.settings import LodySettings
 from bark_agent_hook.summary import _redact_url, _truncate_summary, clean_summary_text
 from bark_agent_hook.utils import _env_value, _hash_value, _hook_event_name
@@ -25,6 +25,22 @@ from bark_agent_hook.utils import _env_value, _hash_value, _hook_event_name
 def _session_id(payload: dict[str, Any]) -> str | None:
     value = payload.get("session_id") or payload.get("sessionId") or payload.get("sessionKey") or payload.get("conversation_id") or payload.get("transcript_path")
     return str(value) if value is not None else None
+
+
+def _payload_value(payload: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = payload.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+def _payload_text(payload: dict[str, Any], *keys: str) -> str | None:
+    value = _payload_value(payload, *keys)
+    if value is None or isinstance(value, dict | list):
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _audit_enabled(env: dict[str, str]) -> bool:
@@ -78,6 +94,121 @@ def _safe_body_preview(body: str) -> str | None:
     return clean_summary_text(body, 200)
 
 
+def _safe_payload_preview(payload: dict[str, Any], *keys: str) -> str | None:
+    return clean_summary_text(_payload_text(payload, *keys), 200)
+
+
+def _tool_input(payload: dict[str, Any]) -> dict[str, Any]:
+    value = _payload_value(payload, "tool_input", "toolInput", "params", "input")
+    return value if isinstance(value, dict) else {}
+
+
+def _tool_input_summary(tool_input: dict[str, Any]) -> str | None:
+    questions = tool_input.get("questions")
+    if isinstance(questions, list):
+        for item in questions:
+            if not isinstance(item, dict):
+                continue
+            summary = clean_summary_text(_payload_text(item, "question", "title", "header"), 200)
+            if summary:
+                return summary
+
+    for key in ("path", "file_path", "file", "cwd", "workspace", "project_path"):
+        value = tool_input.get(key)
+        if isinstance(value, str) and value.strip():
+            return clean_summary_text(value, 200)
+
+    for key in ("description", "summary", "title", "message"):
+        summary = clean_summary_text(_payload_text(tool_input, key), 200)
+        if summary:
+            return summary
+
+    return None
+
+
+def _tool_command_length(tool_input: dict[str, Any]) -> int | None:
+    value = _payload_text(tool_input, "command", "cmd")
+    if value is None:
+        return None
+    return len(value)
+
+
+def _question_count(tool_input: dict[str, Any]) -> int | None:
+    questions = tool_input.get("questions")
+    if not isinstance(questions, list):
+        return None
+    return len([item for item in questions if isinstance(item, dict)])
+
+
+def _exit_code(payload: dict[str, Any]) -> int | None:
+    value = _payload_value(payload, "exit_code", "exitCode", "returncode", "return_code")
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            return int(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _tool_status(payload: dict[str, Any]) -> str | None:
+    status = clean_summary_text(_payload_text(payload, "tool_status", "toolStatus"), 80)
+    if status:
+        return status
+    success = payload.get("success")
+    if success is True:
+        return "success"
+    if success is False:
+        return "failed"
+    return None
+
+
+def _add_tool_metadata(record: dict[str, Any], payload: dict[str, Any]) -> None:
+    hook_event = _hook_event_name(payload)
+    tool_name = clean_summary_text(_payload_text(payload, "tool_name", "toolName", "tool", "name"), 120)
+    tool_input = _tool_input(payload)
+    if not tool_name and not tool_input and hook_event not in {"PreToolUse", "PostToolUse", "PermissionRequest", *TOOL_CALL_EVENT_NAMES}:
+        return
+
+    if tool_name:
+        record["tool_name"] = tool_name
+
+    tool_kind = clean_summary_text(_payload_text(payload, "tool_kind", "toolKind", "tool_type", "toolType", "kind"), 80)
+    if tool_kind:
+        record["tool_kind"] = tool_kind
+
+    call_id = _payload_value(payload, "tool_call_id", "toolCallId", "call_id", "callId", "id")
+    if call_id is not None:
+        record["tool_call_id_hash"] = _hash_value(call_id)
+
+    tool_status = _tool_status(payload)
+    if tool_status:
+        record["tool_status"] = tool_status
+
+    exit_code = _exit_code(payload)
+    if exit_code is not None:
+        record["exit_code"] = exit_code
+
+    command_length = _tool_command_length(tool_input)
+    if command_length is not None:
+        record["tool_command_len"] = command_length
+
+    questions_count = _question_count(tool_input)
+    if questions_count is not None:
+        record["tool_question_count"] = questions_count
+
+    input_summary = _tool_input_summary(tool_input)
+    if input_summary:
+        record["tool_input_summary"] = input_summary
+
+    result_summary = _safe_payload_preview(payload, "summary", "reason", "error", "message")
+    if result_summary:
+        record["tool_result_summary"] = result_summary
+
+
 def _write_audit_record(env: dict[str, str], record: dict[str, Any]) -> None:
     if not _audit_enabled(env):
         return
@@ -118,6 +249,7 @@ def _new_audit_record(
     lody_values = lody_settings.audit_values()
     if lody_values:
         record["lody"] = lody_values
+    _add_tool_metadata(record, payload)
     return record
 
 
