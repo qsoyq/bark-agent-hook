@@ -13,7 +13,7 @@ This repository contains the standalone `bark-agent-hook` CLI and companion plug
 
 ## Architecture
 
-The Typer CLI is exposed as `bark-agent-hook`. It intentionally has only three subcommands: `hook`, `install`, and `uninstall`. Install guidance belongs in the root help text, not in generated command docs or a separate `plugins` command group.
+The Typer CLI is exposed as `bark-agent-hook`. It intentionally has four subcommands: `hook`, `send`, `install`, and `uninstall`. Install guidance belongs in the root help text, not in generated command docs or a separate `plugins` command group.
 
 Plugin manifests are under `plugins/`; marketplace manifests are under `.agents/plugins/` and `.claude-plugin/`. Keep manifest versions synchronized across Codex, Claude Code, OpenClaw package metadata, and OpenClaw native manifest.
 

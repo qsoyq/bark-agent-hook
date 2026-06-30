@@ -34,6 +34,7 @@ You can also run the CLI without installing it first:
 ```shell
 uvx bark-agent-hook --help
 uvx bark-agent-hook hook --runtime codex --event completion --dry-run
+uvx bark-agent-hook send --title "Test" --body "Hello" --dry-run
 ```
 
 For real agent hooks, keep `bark-agent-hook` installed in `PATH`. The installed Codex, Claude Code, and OpenClaw plugins invoke `bark-agent-hook hook ...` when the agent emits lifecycle events.
@@ -104,6 +105,57 @@ The default title is intentionally compact:
 Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`.
 
 Use `BARK_GROUP` as either a fixed Bark group or a group template. Available group values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`. For example, `BARK_GROUP={project}` groups notifications by project, and `BARK_GROUP={project}@{branch}` groups them by project and branch. Group and title variables are not URL-encoded.
+
+## Direct Send
+
+Use `send` when you want to send a Bark notification directly from a shell script or manual workflow:
+
+```shell
+BARK_DEVICE_KEY=device-key bark-agent-hook send --title "Test" --body "Hello"
+BARK_DEVICE_KEY=device-key bark-agent-hook send --title "Test" --markdown "## Done" --dry-run
+```
+
+For batch sends, repeat `--device-key` or set `BARK_DEVICE_KEYS` as a comma-separated list:
+
+```shell
+bark-agent-hook send --device-key key1 --device-key key2 --body "Batch"
+BARK_DEVICE_KEYS=key1,key2 bark-agent-hook send --body "Batch"
+```
+
+`send` uses JSON `POST {BARK_SERVER}/push`. A single device key is sent as `device_key`; multiple keys are sent as `device_keys`.
+
+The direct send command supports the current Bark push fields:
+
+| Option | Environment | Description |
+|---|---|---|
+| `--server` | `BARK_SERVER` | Bark server base URL without the device key. |
+| `--device-key` | `BARK_DEVICE_KEYS` / `BARK_DEVICE_KEY` | Bark device key. Repeat for multiple keys. |
+| `--title` | None | Push title. |
+| `--subtitle` | None | Push subtitle. |
+| `--body` | None | Push body. If `--markdown` is provided, Bark ignores body. |
+| `--markdown` | None | Markdown push body for multiline or rich text content. |
+| `--level` | `BARK_LEVEL` | Interruption level: `critical`, `active`, `timeSensitive`, or `passive`. |
+| `--volume` | None | Critical alert volume, range `0..10`. |
+| `--badge` | None | Bark app badge number. |
+| `--call / --no-call` | None | Repeat notification ringtone. |
+| `--auto-copy / --no-auto-copy` | None | Automatically copy push content. |
+| `--copy` | None | Copy text override. |
+| `--sound` | None | Bark notification sound name. |
+| `--icon` | None | Custom notification icon URL. |
+| `--image` | None | Push image URL. |
+| `--group` | `BARK_GROUP` | Bark notification group. Unlike `hook`, `send` uses it literally and does not render templates. |
+| `--ciphertext` | None | Encrypted push ciphertext. The CLI passes it through and does not encrypt. |
+| `--archive / --no-archive` | None | Save to Bark history by sending `isArchive=1` or `isArchive=0`. |
+| `--ttl` | None | History retention time in seconds. |
+| `--url` | `BARK_URL` | URL opened when tapping the notification. |
+| `--action` | None | Notification action type; upstream currently documents `alert`. |
+| `--id` | None | Collapse/update notification ID. |
+| `--delete / --no-delete` | None | Delete the notification with the given `--id`. |
+| `--param KEY=VALUE` | `BARK_EXTRA_PARAMS` | Extra Bark parameters for future upstream fields or server extensions. |
+| `--dry-run` | `BARK_DRY_RUN` | Print the final JSON payload without sending. |
+| `--timeout` | `BARK_TIMEOUT` | HTTP request timeout in seconds. |
+
+`BARK_EXTRA_PARAMS` must be a JSON object. Boolean environment values accept `1/true/yes/on` and `0/false/no/off`.
 
 ## Hook Commands
 

@@ -6,7 +6,7 @@ from typing import Any
 import typer
 
 helptext = """
-Send Bark notifications from agent lifecycle hooks.
+Send Bark notifications from agent lifecycle hooks and direct CLI requests.
 
 Install plugins:
   bark-agent-hook install
@@ -16,6 +16,10 @@ Install plugins:
 Uninstall plugins:
   bark-agent-hook uninstall
   bark-agent-hook uninstall --agent codex
+
+Direct Bark notification:
+  bark-agent-hook send --title "Test" --body "Hello"
+  bark-agent-hook send --device-key key1 --device-key key2 --body "Batch"
 
 Hook commands used by the plugins:
   bark-agent-hook hook --runtime codex --event completion
@@ -33,9 +37,12 @@ Direct plugin install commands:
   openclaw plugins enable bark-agent-hook-openclaw
 
 Configuration:
-  BARK_DEVICE_KEY is required. Missing or empty means skip and exit 0.
-  BARK_GROUP is optional and overrides the computed Bark group. It may be a fixed value or template.
+  For hook, BARK_DEVICE_KEY is required. Missing or empty means skip and exit 0.
+  For send, BARK_DEVICE_KEY, BARK_DEVICE_KEYS, or --device-key is required. Missing values fail the command.
+  BARK_DEVICE_KEYS is comma-separated and only used by send.
+  BARK_GROUP is optional. For hook, it overrides the computed Bark group and may be a fixed value or template. For send, it is used literally.
   BARK_SERVER defaults to https://api.day.app.
+  BARK_LEVEL, BARK_URL, BARK_EXTRA_PARAMS, BARK_DRY_RUN, and BARK_TIMEOUT are used by send.
   AGENT_BARK_NOTIFY_HOOK_URL optionally sets a Bark click URL template.
   AGENT_BARK_NOTIFY_TITLE_TEMPLATE optionally sets a notification title template.
   AGENT_BARK_NOTIFY_GROUP_MODE selects the computed group when BARK_GROUP is unset: agent, project, or project-branch.
