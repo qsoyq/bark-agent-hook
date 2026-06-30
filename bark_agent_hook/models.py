@@ -31,6 +31,13 @@ class AgentOption(str, Enum):
     openclaw = "openclaw"
 
 
+class BarkLevelOption(str, Enum):
+    critical = "critical"
+    active = "active"
+    time_sensitive = "timeSensitive"
+    passive = "passive"
+
+
 @dataclass(frozen=True)
 class CommandResult:
     args: list[str]

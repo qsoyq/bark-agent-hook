@@ -30,8 +30,16 @@ def _clear_agent_env(monkeypatch):
         "CODEX_CI",
         "CODEX_THREAD_ID",
         "BARK_DEVICE_KEY",
+        "BARK_DEVICE_KEYS",
         "BARK_GROUP",
         "BARK_SERVER",
+        "BARK_TITLE",
+        "BARK_BODY",
+        "BARK_LEVEL",
+        "BARK_URL",
+        "BARK_EXTRA_PARAMS",
+        "BARK_DRY_RUN",
+        "BARK_TIMEOUT",
         "AGENT_BARK_NOTIFY_HOOK_URL",
         "AGENT_BARK_NOTIFY_TITLE_TEMPLATE",
         "AGENT_BARK_NOTIFY_GROUP_MODE",
@@ -975,6 +983,224 @@ def test_lody_electron_session_user_id_detects_lody_runtime(monkeypatch, tmp_pat
     body = json.loads(result.output)
     assert body["title"] == "Done - demo-project"
     assert body["group"] == "Lody"
+
+
+def test_send_dry_run_uses_env_device_key_and_cli_content(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--title", "Test", "--body", "Hello", "--dry-run"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload == {
+        "body": "Hello",
+        "device_key": "device-key",
+        "title": "Test",
+    }
+
+
+def test_send_posts_json_with_all_supported_options(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    calls: list[httpx.Request] = []
+    real_client = httpx.Client
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json={"code": 200})
+
+    monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=httpx.MockTransport(handler)))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        [
+            "send",
+            "--server",
+            "https://push.example.test/base/",
+            "--device-key",
+            "key-1",
+            "--title",
+            "Title",
+            "--subtitle",
+            "Subtitle",
+            "--body",
+            "Body",
+            "--markdown",
+            "**Body**",
+            "--level",
+            "critical",
+            "--volume",
+            "7",
+            "--badge",
+            "3",
+            "--call",
+            "--auto-copy",
+            "--copy",
+            "copy text",
+            "--sound",
+            "minuet",
+            "--icon",
+            "https://example.test/icon.png",
+            "--image",
+            "https://example.test/image.png",
+            "--group",
+            "ops",
+            "--archive",
+            "--ttl",
+            "60",
+            "--url",
+            "app://open",
+            "--action",
+            "alert",
+            "--id",
+            "notification-1",
+            "--param",
+            "source=test",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert len(calls) == 1
+    assert str(calls[0].url) == "https://push.example.test/base/push"
+    payload = json.loads(calls[0].content)
+    assert payload == {
+        "action": "alert",
+        "autoCopy": "1",
+        "badge": 3,
+        "body": "Body",
+        "call": "1",
+        "copy": "copy text",
+        "device_key": "key-1",
+        "group": "ops",
+        "icon": "https://example.test/icon.png",
+        "id": "notification-1",
+        "image": "https://example.test/image.png",
+        "isArchive": "1",
+        "level": "critical",
+        "markdown": "**Body**",
+        "sound": "minuet",
+        "source": "test",
+        "subtitle": "Subtitle",
+        "title": "Title",
+        "ttl": 60,
+        "url": "app://open",
+        "volume": 7,
+    }
+
+
+def test_send_uses_device_keys_batch_from_environment(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEYS", "key-1, key-2")
+    monkeypatch.setenv("BARK_DRY_RUN", "true")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--body", "Batch"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["device_keys"] == ["key-1", "key-2"]
+    assert "device_key" not in payload
+
+
+def test_send_uses_device_keys_batch_from_repeated_cli_options(monkeypatch):
+    _clear_agent_env(monkeypatch)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--device-key", "key-1", "--device-key", "key-2", "--body", "Batch", "--dry-run"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["device_keys"] == ["key-1", "key-2"]
+    assert "device_key" not in payload
+
+
+def test_send_cli_option_overrides_environment_and_extra_params(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "env-key")
+    monkeypatch.setenv("BARK_LEVEL", "passive")
+    monkeypatch.setenv("BARK_GROUP", "env-group")
+    monkeypatch.setenv("BARK_URL", "app://env")
+    monkeypatch.setenv("BARK_EXTRA_PARAMS", '{"title":"extra-title","level":"active","trace":"yes"}')
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        [
+            "send",
+            "--device-key",
+            "cli-key",
+            "--title",
+            "CLI title",
+            "--body",
+            "Body",
+            "--level",
+            "timeSensitive",
+            "--group",
+            "cli-group",
+            "--url",
+            "app://cli",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["device_key"] == "cli-key"
+    assert payload["title"] == "CLI title"
+    assert payload["level"] == "timeSensitive"
+    assert payload["group"] == "cli-group"
+    assert payload["url"] == "app://cli"
+    assert payload["trace"] == "yes"
+
+
+def test_send_ignores_content_environment_variables(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_TITLE", "env title")
+    monkeypatch.setenv("BARK_BODY", "env body")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--dry-run"])
+
+    assert result.exit_code != 0
+    assert "send requires at least one" in result.output
+
+
+def test_send_delete_requires_id(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--delete", "--dry-run"])
+
+    assert result.exit_code != 0
+    assert "--delete requires --id" in result.output
+
+
+def test_send_fails_without_device_key(monkeypatch):
+    _clear_agent_env(monkeypatch)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--body", "Hello", "--dry-run"])
+
+    assert result.exit_code != 0
+    assert "send requires --device-key" in result.output
+
+
+def test_send_rejects_invalid_extra_params(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_EXTRA_PARAMS", "[]")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--body", "Hello", "--dry-run"])
+
+    assert result.exit_code != 0
+    assert "BARK_EXTRA_PARAMS must be a JSON object" in result.output
+
+
+def test_send_rejects_invalid_timeout_environment(monkeypatch):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_TIMEOUT", "0")
+
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--body", "Hello"])
+
+    assert result.exit_code != 0
+    assert "BARK_TIMEOUT must be at least 0.1" in result.output
 
 
 def test_send_bark_posts_form_with_group(monkeypatch, tmp_path):

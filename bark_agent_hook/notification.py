@@ -380,3 +380,8 @@ def send_bark(notification: Notification) -> None:
         data["url"] = notification.click_url
     with httpx.Client(timeout=10) as client:
         client.post(notification.bark_url, data=data).raise_for_status()
+
+
+def send_bark_json(server: str, payload: dict[str, Any], *, timeout: float = 10) -> None:
+    with httpx.Client(timeout=timeout) as client:
+        client.post(f"{server.rstrip('/')}/push", json=payload).raise_for_status()
