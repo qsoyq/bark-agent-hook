@@ -1,6 +1,6 @@
 [project]
 name = "bark-agent-hook"
-version = "0.1.10"
+version = "0.1.11"
 description = "Bark notification hooks for Codex, Claude Code, and OpenClaw agents."
 readme = "README.md"
 requires-python = ">=3.10"
