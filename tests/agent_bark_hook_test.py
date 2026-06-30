@@ -1860,6 +1860,21 @@ def test_auto_event_maps_plan_update_to_attention(monkeypatch, tmp_path):
     assert body["body"] == "Proposed plan is ready"
 
 
+def test_auto_event_maps_message_display_to_audit_only(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--summary-mode", "extract", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "MessageDisplay", "session_id": "message-display-audit"}),
+    )
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "logged: audit-only event"
+
+
 def test_auto_event_maps_claude_ask_user_question_to_approval(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")

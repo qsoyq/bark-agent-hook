@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
           }
         ]
       }
