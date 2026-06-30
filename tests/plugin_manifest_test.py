@@ -91,9 +91,9 @@ def test_claude_bark_plugin_hook_config_catches_user_questions():
     assert permission_hook == {"type": "command", "command": approval_command}
     assert commands["Notification"] == auto_command
     assert commands["PreToolUse"] == auto_command
-    for event_name in ("UserPromptSubmit", "PostToolUse", "PreCompact", "SessionStart"):
+    for event_name in ("UserPromptSubmit", "PostToolUse", "PreCompact", "SessionStart", "MessageDisplay"):
         assert commands[event_name] == audit_command
-    for event_name in ("PermissionDenied", "Elicitation", "MessageDisplay"):
+    for event_name in ("PermissionDenied", "Elicitation"):
         assert commands[event_name] == attention_command
     assert commands["StopFailure"] == failed_command
     assert commands["SubagentStop"] == completion_command

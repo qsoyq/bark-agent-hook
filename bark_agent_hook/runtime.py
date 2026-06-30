@@ -97,7 +97,7 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
         return "audit_only"
     if payload.get("success") is False and hook_event not in {"PermissionDenied"}:
         return "failed"
-    if hook_event in {"Elicitation", "PermissionDenied", "MessageDisplay"}:
+    if hook_event in {"Elicitation", "PermissionDenied"}:
         return "attention_needed"
     if hook_event in {"plan_update", "plan_delta", "turn/plan/updated", "TurnPlanUpdatedNotification", "PlanDeltaNotification"}:
         return "attention_needed"
@@ -116,7 +116,7 @@ def detect_event(event: Event, payload: dict[str, Any]) -> str | None:
         return "failed"
     if hook_event == "SessionEnd" and str(payload.get("reason") or payload.get("status") or "").lower() in {"failed", "error"}:
         return "failed"
-    if hook_event in {"UserPromptSubmit", "SessionStart", "SubagentStart", "PreCompact", "PostCompact"}:
+    if hook_event in {"MessageDisplay", "UserPromptSubmit", "SessionStart", "SubagentStart", "PreCompact", "PostCompact"}:
         return "audit_only"
     if "plan" in hook_event_lower and ("update" in hook_event_lower or "delta" in hook_event_lower):
         return "attention_needed"
