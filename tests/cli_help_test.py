@@ -1,12 +1,15 @@
+import re
+
 from typer.testing import CliRunner
 
 from bark_agent_hook import hook as agent_bark_hook
 
 runner = CliRunner()
+ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def _plain(text: str) -> str:
-    return text.replace("\x1b", "")
+    return ANSI_RE.sub("", text)
 
 
 def test_root_help_contains_install_guidance_without_plugins_group():

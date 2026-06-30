@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from bark_agent_hook import audit as agent_bark_audit
 from bark_agent_hook import hook as agent_bark_hook
+from tests.cli_help_test import _plain
 
 runner = CliRunner()
 
@@ -1169,7 +1170,7 @@ def test_send_delete_requires_id(monkeypatch):
     result = runner.invoke(agent_bark_hook.cmd, ["send", "--delete", "--dry-run"])
 
     assert result.exit_code != 0
-    assert "--delete requires --id" in result.output
+    assert "--delete requires --id" in _plain(result.output)
 
 
 def test_send_fails_without_device_key(monkeypatch):
@@ -1178,7 +1179,7 @@ def test_send_fails_without_device_key(monkeypatch):
     result = runner.invoke(agent_bark_hook.cmd, ["send", "--body", "Hello", "--dry-run"])
 
     assert result.exit_code != 0
-    assert "send requires --device-key" in result.output
+    assert "send requires --device-key" in _plain(result.output)
 
 
 def test_send_rejects_invalid_extra_params(monkeypatch):
