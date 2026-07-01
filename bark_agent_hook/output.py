@@ -98,7 +98,7 @@ def _print_install_next_steps(results: list[InstallResult], console: Console) ->
     console.print("[bold]Next steps:[/bold]")
     console.print("  Set BARK_DEVICE_KEY=<your Bark device key>")
     console.print("  Optional: BARK_SERVER=https://api.day.app")
-    console.print("  Optional: BARK_GROUP=<fixed Bark group or template, such as {project}>")
+    console.print("  Optional: BARK_GROUP=<fixed Bark group or template, such as {repo_or_project}>")
     console.print("  Optional: AGENT_BARK_NOTIFY_GROUP_MODE=agent|project|project-branch")
     console.print("  Optional: AGENT_BARK_NOTIFY_HOOK_URL=  # empty by default; optional click URL template")
     console.print("  Example: AGENT_BARK_NOTIFY_HOOK_URL=https://lody.ai/users/{LODY_ELECTRON_SESSION_USER_ID}/sessions/{LODY_SESSION_ID}")

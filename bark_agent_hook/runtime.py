@@ -153,6 +153,24 @@ def cwd_basename(payload: dict[str, Any], cwd: Path | None = None) -> str:
     return _path_from_payload(payload, cwd).name
 
 
+def repo_name(payload: dict[str, Any], cwd: Path | None = None) -> str:
+    repo_path = _path_from_payload(payload, cwd)
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "--show-toplevel"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if result.returncode != 0:
+        return ""
+    top = result.stdout.strip()
+    return Path(top).name if top else ""
+
+
 def branch_name(payload: dict[str, Any], env: dict[str, str], cwd: Path | None = None) -> str:
     for key in ("branch_name", "branch", "git_branch", "ref_name"):
         raw_name = payload.get(key)

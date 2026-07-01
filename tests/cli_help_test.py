@@ -27,6 +27,12 @@ def test_root_help_contains_install_guidance_without_plugins_group():
     assert "./plugins/bark-agent-hook-openclaw" in output
     assert "BARK_DEVICE_KEY" in output
     assert "AGENT_BARK_NOTIFY_HOOK_URL" in output
+    assert "AGENT_BARK_NOTIFY_AUDIT_LOG_FILE defaults to" in output
+    assert "~/.bark-agent-hook/bark-agent-hook.log when audit logging is enabled" in output
+    assert "{repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}" in output
+    assert "{repo_or_project} is the git repository directory name inside a repo, else" in output
+    assert "the project name" in output
+    assert "Example: BARK_GROUP='{repo_or_project}@{branch}'" in output
     assert "plugins list" not in output
     assert "config-snippet" not in output
     assert "install-guide" not in output

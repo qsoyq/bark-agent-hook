@@ -40,14 +40,15 @@ Configuration:
   For hook, BARK_DEVICE_KEY is required. Missing or empty means skip and exit 0.
   For send, BARK_DEVICE_KEY, BARK_DEVICE_KEYS, or --device-key is required. Missing values fail the command.
   BARK_DEVICE_KEYS is comma-separated and only used by send.
-  BARK_GROUP is optional. For hook, it overrides the computed Bark group and may be a fixed value or template. For send, it is used literally.
   BARK_SERVER defaults to https://api.day.app.
-  BARK_LEVEL, BARK_URL, BARK_EXTRA_PARAMS, BARK_DRY_RUN, and BARK_TIMEOUT are used by send.
-  AGENT_BARK_NOTIFY_HOOK_URL optionally sets a Bark click URL template.
+  BARK_GROUP is optional. For hook, it overrides the computed Bark group and may be a fixed value or template. For send, it is used literally.
+  AGENT_BARK_NOTIFY_GROUP_MODE=agent|project|project-branch selects the computed hook group when BARK_GROUP is unset.
+  AGENT_BARK_NOTIFY_HOOK_URL is empty by default and optionally sets a Bark click URL template.
+  Example: AGENT_BARK_NOTIFY_HOOK_URL=https://lody.ai/users/{LODY_ELECTRON_SESSION_USER_ID}/sessions/{LODY_SESSION_ID}
   AGENT_BARK_NOTIFY_TITLE_TEMPLATE optionally sets a notification title template.
-  AGENT_BARK_NOTIFY_GROUP_MODE selects the computed group when BARK_GROUP is unset: agent, project, or project-branch.
   AGENT_BARK_NOTIFY_AUDIT_LOG=1 enables local JSONL audit logging.
-  AGENT_BARK_NOTIFY_AUDIT_LOG_FILE overrides the audit log path.
+  AGENT_BARK_NOTIFY_AUDIT_LOG_FILE defaults to ~/.bark-agent-hook/bark-agent-hook.log when audit logging is enabled.
+  BARK_LEVEL, BARK_URL, BARK_EXTRA_PARAMS, BARK_DRY_RUN, and BARK_TIMEOUT are used by send.
 
 Template variables:
   AGENT_BARK_NOTIFY_TITLE_TEMPLATE supports:
@@ -56,10 +57,11 @@ Template variables:
     {LODY_WORKSPACE_SESSION_ID}.
     Example: AGENT_BARK_NOTIFY_TITLE_TEMPLATE='[{agent}][{event}][{LODY_SESSION_ID}]'
   BARK_GROUP supports:
-    {agent}, {event}, {project}, {branch}, {session}, {runtime}, {cwd_basename},
-    {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
-    {LODY_WORKSPACE_SESSION_ID}.
-    Example: BARK_GROUP='{project}@{branch}'
+    {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}.
+    {repo_or_project} is the git repository directory name inside a repo, else the project name.
+    {workdir} is the current working directory basename.
+    {workspace} is the Lody workspace session from LODY_WORKSPACE_SESSION_ID; empty otherwise.
+    Example: BARK_GROUP='{repo_or_project}@{branch}'
   AGENT_BARK_NOTIFY_HOOK_URL supports:
     {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
     {session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id},
