@@ -508,7 +508,7 @@ def test_install_help_describes_scope_plugins_and_environment():
         "claude",
         "openclaw",
         "agent",
-        "multiple agents",
+        "多个",
         "bark-agent-hook-codex@bark-agent-hook",
         "bark-agent-hook@bark-agent-hook",
     ):

@@ -153,17 +153,16 @@ def _validate_send_payload(payload: dict[str, Any]) -> None:
 
 @cmd.command()
 def install(
-    agents: list[AgentOption] | None = typer.Option(None, "--agent", help="Agent plugin to install. Repeat for multiple agents. Defaults to all supported agents."),
+    agents: list[AgentOption] | None = typer.Option(None, "--agent", help="要安装插件的 agent。可重复指定多个；默认安装所有支持且本地可用的 agent。"),
 ) -> None:
-    """Install bark-agent-hook plugins for locally available agents.
+    """为本地可用的 agent 安装 bark-agent-hook 插件。
 
-    This command checks for codex, claude, and openclaw CLIs in PATH unless
-    one or more --agent options are passed. Missing CLIs are skipped.
+    未传 --agent 时会检查 PATH 中的 codex、claude 和 openclaw CLI；缺失的 CLI 会跳过。
 
-    Installed plugins:
+    安装的插件:
       Codex:        bark-agent-hook-codex@bark-agent-hook
       Claude Code:  bark-agent-hook@bark-agent-hook --scope user
-      OpenClaw:     local linked plugin from plugins/bark-agent-hook-openclaw
+      OpenClaw:     plugins/bark-agent-hook-openclaw 中的本地链接插件
     """
     results = _install_for_available_agents(agents)
     _print_install_results(results, Console(highlight=False, width=120))
@@ -173,9 +172,9 @@ def install(
 
 @cmd.command()
 def uninstall(
-    agents: list[AgentOption] | None = typer.Option(None, "--agent", help="Agent plugin to uninstall. Repeat for multiple agents. Defaults to all supported agents."),
+    agents: list[AgentOption] | None = typer.Option(None, "--agent", help="要卸载插件的 agent。可重复指定多个；默认卸载所有支持且本地可用的 agent。"),
 ) -> None:
-    """Uninstall bark-agent-hook plugins for locally available agents."""
+    """为本地可用的 agent 卸载 bark-agent-hook 插件。"""
     results = _uninstall_for_available_agents(agents)
     _print_uninstall_results(results, Console(highlight=False, width=120))
     if _found_cli_count(results) > 0 and _succeeded(results) == 0:
@@ -197,34 +196,34 @@ def _resolve_level(level: BarkLevelOption | None, env: dict[str, str]) -> str | 
 
 @cmd.command()
 def send(
-    server: str | None = typer.Option(None, "--server", help="Bark server base URL without the device key. Env: BARK_SERVER. Default: https://api.day.app."),
-    device_keys: list[str] | None = typer.Option(None, "--device-key", help="Bark device key. Repeat for multiple keys. Env: BARK_DEVICE_KEYS or BARK_DEVICE_KEY."),
-    title: str | None = typer.Option(None, "--title", help="Push title."),
-    subtitle: str | None = typer.Option(None, "--subtitle", help="Push subtitle."),
-    body: str | None = typer.Option(None, "--body", help="Push body. If --markdown is also provided, Bark ignores body."),
-    markdown: str | None = typer.Option(None, "--markdown", help="Markdown push body for multiline or rich text content."),
-    level: BarkLevelOption | None = typer.Option(None, "--level", help="Interruption level: critical, active, timeSensitive, or passive. Env: BARK_LEVEL."),
-    volume: int | None = typer.Option(None, "--volume", min=0, max=10, help="Critical alert volume, range 0..10."),
-    badge: int | None = typer.Option(None, "--badge", help="Bark app badge number."),
-    call: bool | None = typer.Option(None, "--call/--no-call", help="Repeat notification ringtone. Enabled sends call=1."),
-    auto_copy: bool | None = typer.Option(None, "--auto-copy/--no-auto-copy", help="Automatically copy push content. Enabled sends autoCopy=1."),
-    copy: str | None = typer.Option(None, "--copy", help="Copy text override. If omitted, Bark copies the full push content."),
-    sound: str | None = typer.Option(None, "--sound", help="Bark notification sound name."),
-    icon: str | None = typer.Option(None, "--icon", help="Custom notification icon URL."),
-    image: str | None = typer.Option(None, "--image", help="Push image URL."),
-    group: str | None = typer.Option(None, "--group", help="Bark notification group. Env: BARK_GROUP. Used literally; hook templates are not rendered."),
-    ciphertext: str | None = typer.Option(None, "--ciphertext", help="Encrypted push ciphertext. The CLI passes it through and does not encrypt."),
-    archive: bool | None = typer.Option(None, "--archive/--no-archive", help="Save to Bark history. True sends isArchive=1; false sends isArchive=0."),
-    ttl: int | None = typer.Option(None, "--ttl", min=0, help="History retention time in seconds."),
-    url: str | None = typer.Option(None, "--url", help="URL opened when tapping the notification. Env: BARK_URL."),
-    action: str | None = typer.Option(None, "--action", help="Notification action type; upstream currently documents alert."),
-    id: str | None = typer.Option(None, "--id", help="Collapse/update notification ID. Reusing an ID updates the matching notification."),
-    delete: bool | None = typer.Option(None, "--delete/--no-delete", help="Delete notification with the given id. Requires --id."),
-    params: list[str] | None = typer.Option(None, "--param", help="Extra Bark parameter in KEY=VALUE form. Repeat for multiple params. Env: BARK_EXTRA_PARAMS JSON object."),
-    dry_run: bool | None = typer.Option(None, "--dry-run/--no-dry-run", help="Print the final JSON payload without sending an HTTP request. Env: BARK_DRY_RUN."),
-    timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="HTTP request timeout in seconds. Env: BARK_TIMEOUT. Default: 10."),
+    server: str | None = typer.Option(None, "--server", help="Bark 服务端基础 URL，不包含 device key。环境变量: BARK_SERVER。默认: https://api.day.app。"),
+    device_keys: list[str] | None = typer.Option(None, "--device-key", help="Bark device key。可重复指定多个。环境变量: BARK_DEVICE_KEYS 或 BARK_DEVICE_KEY。"),
+    title: str | None = typer.Option(None, "--title", help="推送标题。"),
+    subtitle: str | None = typer.Option(None, "--subtitle", help="推送副标题。"),
+    body: str | None = typer.Option(None, "--body", help="推送正文。如果同时提供 --markdown，Bark 会忽略 body。"),
+    markdown: str | None = typer.Option(None, "--markdown", help="Markdown 推送正文，适合多行或富文本内容。"),
+    level: BarkLevelOption | None = typer.Option(None, "--level", help="中断级别: critical、active、timeSensitive 或 passive。环境变量: BARK_LEVEL。"),
+    volume: int | None = typer.Option(None, "--volume", min=0, max=10, help="Critical alert 音量，范围 0..10。"),
+    badge: int | None = typer.Option(None, "--badge", help="Bark app badge 数字。"),
+    call: bool | None = typer.Option(None, "--call/--no-call", help="是否重复通知铃声。启用时发送 call=1。"),
+    auto_copy: bool | None = typer.Option(None, "--auto-copy/--no-auto-copy", help="是否自动复制推送内容。启用时发送 autoCopy=1。"),
+    copy: str | None = typer.Option(None, "--copy", help="复制文本覆盖值。省略时 Bark 复制完整推送内容。"),
+    sound: str | None = typer.Option(None, "--sound", help="Bark 通知声音名称。"),
+    icon: str | None = typer.Option(None, "--icon", help="自定义通知图标 URL。"),
+    image: str | None = typer.Option(None, "--image", help="推送图片 URL。"),
+    group: str | None = typer.Option(None, "--group", help="Bark 通知分组。环境变量: BARK_GROUP。send 按字面使用；hook 模板不会在这里渲染。"),
+    ciphertext: str | None = typer.Option(None, "--ciphertext", help="加密推送 ciphertext。CLI 仅透传，不负责加密。"),
+    archive: bool | None = typer.Option(None, "--archive/--no-archive", help="是否保存到 Bark 历史。true 发送 isArchive=1；false 发送 isArchive=0。"),
+    ttl: int | None = typer.Option(None, "--ttl", min=0, help="历史保留时间，单位秒。"),
+    url: str | None = typer.Option(None, "--url", help="点击通知时打开的 URL。环境变量: BARK_URL。"),
+    action: str | None = typer.Option(None, "--action", help="通知 action 类型；上游当前文档为 alert。"),
+    id: str | None = typer.Option(None, "--id", help="折叠/更新通知 ID。复用 ID 会更新匹配通知。"),
+    delete: bool | None = typer.Option(None, "--delete/--no-delete", help="删除指定 id 的通知。需要 --id。"),
+    params: list[str] | None = typer.Option(None, "--param", help="额外 Bark 参数，格式 KEY=VALUE。可重复指定。环境变量: BARK_EXTRA_PARAMS JSON object。"),
+    dry_run: bool | None = typer.Option(None, "--dry-run/--no-dry-run", help="打印最终 JSON payload，不发送 HTTP 请求。环境变量: BARK_DRY_RUN。"),
+    timeout: float | None = typer.Option(None, "--timeout", min=0.1, help="HTTP 请求超时时间，单位秒。环境变量: BARK_TIMEOUT。默认: 10。"),
 ) -> None:
-    """Send a direct Bark notification."""
+    """直接发送一条 Bark 通知。"""
     env = dict(os.environ)
     resolved_server = _resolve_option(server, env, "BARK_SERVER", "https://api.day.app")
     if resolved_server is None:
@@ -278,16 +277,44 @@ def send(
 
 @cmd.command()
 def hook(
-    runtime: Runtime = typer.Option("auto", "--runtime", help="Hook runtime: codex, claude, openclaw, or auto."),
-    event: Event = typer.Option("auto", "--event", help="Notification event override."),
-    message: str | None = typer.Option(None, "--message", help="Override short notification body."),
-    group_mode: GroupModeOption | None = typer.Option(None, "--group-mode", help="Bark group mode: agent, project, or project-branch."),
-    summary_mode: SummaryMode = typer.Option("fixed", "--summary-mode", help="Notification summary mode: fixed or extract."),
-    summary_max_chars: int = typer.Option(DEFAULT_SUMMARY_MAX_CHARS, "--summary-max-chars", min=1, help="Maximum extractive summary length."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print notification summary without sending Bark request."),
-    no_dedupe: bool = typer.Option(False, "--no-dedupe", help="Disable duplicate suppression."),
+    runtime: Runtime = typer.Option("auto", "--runtime", help="Hook runtime: codex、claude、openclaw 或 auto。"),
+    event: Event = typer.Option("auto", "--event", help="通知事件覆盖值。"),
+    message: str | None = typer.Option(None, "--message", help="覆盖短通知正文。"),
+    group_mode: GroupModeOption | None = typer.Option(None, "--group-mode", help="Bark 分组模式: agent、project 或 project-branch。"),
+    summary_mode: SummaryMode = typer.Option("fixed", "--summary-mode", help="通知摘要模式: fixed 或 extract。"),
+    summary_max_chars: int = typer.Option(DEFAULT_SUMMARY_MAX_CHARS, "--summary-max-chars", min=1, help="extract 摘要最大长度。"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="打印通知摘要，不发送 Bark 请求。"),
+    no_dedupe: bool = typer.Option(False, "--no-dedupe", help="禁用重复通知抑制。"),
 ) -> None:
-    """Read hook JSON from stdin and send a best-effort Bark notification."""
+    """从 stdin 读取 hook JSON，并尽力发送 Bark 通知。
+
+    配置:
+      BARK_DEVICE_KEY 必填；缺失或为空时跳过通知并以 0 退出。
+      BARK_SERVER 默认 https://api.day.app。
+      BARK_GROUP 可为固定值或模板，会覆盖 --group-mode / AGENT_BARK_NOTIFY_GROUP_MODE。
+      AGENT_BARK_NOTIFY_GROUP_MODE=agent|project|project-branch，在 BARK_GROUP 未设置时选择自动分组。
+      AGENT_BARK_NOTIFY_HOOK_URL 默认为空，可设置 Bark 点击 URL 模板。
+      AGENT_BARK_NOTIFY_TITLE_TEMPLATE 可设置通知标题模板。
+      AGENT_BARK_NOTIFY_AUDIT_LOG=1 启用本地 JSONL 审计日志。
+      AGENT_BARK_NOTIFY_AUDIT_LOG_FILE 在启用审计日志时默认 ~/.bark-agent-hook/bark-agent-hook.log。
+
+    模板变量:
+      AGENT_BARK_NOTIFY_TITLE_TEMPLATE 支持:
+        {agent}, {event}, {project}, {branch}, {session}, {runtime}, {cwd_basename},
+        {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
+        {LODY_WORKSPACE_SESSION_ID}.
+      BARK_GROUP 支持:
+        {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}.
+        {repo_or_project}: 在 git 仓库内为仓库顶层目录名，否则为 project 名。
+        {workdir}: 当前工作目录 basename。
+        {workspace}: Lody workspace 会话，来自 LODY_WORKSPACE_SESSION_ID；缺失时为空。
+      AGENT_BARK_NOTIFY_HOOK_URL 支持:
+        {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
+        {session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id},
+        {workspace_dir}, {cwd_basename}, {LODY_ELECTRON_BOOTSTRAP},
+        {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID}, {LODY_WORKSPACE_SESSION_ID}.
+      Hook URL 变量值会做 percent-encode；标题和分组变量不会 URL 编码。
+    """
     env = dict(os.environ)
     payload = parse_hook_payload(_read_stdin())
     lody_settings = LodySettings()

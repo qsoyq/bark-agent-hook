@@ -25,6 +25,7 @@ from bark_agent_hook.runtime import (
     event_label,
     identity_for_runtime,
     project_name,
+    repo_name,
     safe_message,
     session_name,
     title_branch_name,
@@ -159,15 +160,12 @@ def notification_group(
     configured_group = _env_value(env, "BARK_GROUP")
     if configured_group:
         values = _SafeTemplateVars(
-            agent=identity.name,
-            event=event_label(event),
-            project=project_name(payload, cwd),
-            runtime=runtime,
-            cwd_basename=cwd_basename(payload, cwd),
+            repo_or_project=repo_name(payload, cwd) or project_name(payload, cwd),
+            workdir=cwd_basename(payload, cwd),
             branch=branch_name(payload, env, cwd),
-            session=session_name(payload, env),
+            workspace=(lody_settings.workspace_session_id or "").strip(),
+            runtime=runtime,
         )
-        values.update(lody_settings.template_values())
         try:
             rendered = configured_group.format_map(values)
         except ValueError:
