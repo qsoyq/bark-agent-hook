@@ -105,6 +105,10 @@ def _print_install_next_steps(results: list[InstallResult], console: Console) ->
     console.print("  Optional: AGENT_BARK_NOTIFY_AUDIT_LOG=1")
     console.print("  Optional: AGENT_BARK_NOTIFY_AUDIT_LOG_FILE=~/.bark-agent-hook/bark-agent-hook.log")
     console.print()
+    console.print("  Optional ACP adapter:")
+    console.print("  bark-agent-hook install --agent zed-claude-code-acp")
+    console.print("  Installs ~/.bark-agent-hook/bin/claude-code-acp-bark for ACP clients that launch @zed-industries/claude-code-acp.")
+    console.print()
     if any(result.agent == "Codex" for result in results):
         console.print()
         console.print("[bold]Codex note:[/bold]")
@@ -117,3 +121,12 @@ def _print_install_next_steps(results: list[InstallResult], console: Console) ->
         console.print()
         console.print("OpenClaw install currently requires the local plugin directory from the bark-agent-hook source checkout.")
         console.print("Run from the source checkout, or add packaged/remote OpenClaw plugin support in a follow-up.")
+    acp_results = [result for result in results if result.agent == "Zed Claude Code ACP" and result.status in {"installed", "updated", "downgraded", "unchanged"}]
+    if acp_results:
+        console.print()
+        console.print("[bold]Claude Code ACP note:[/bold]")
+        console.print("  Replace ACP clients that launch:")
+        console.print("  npx -y @zed-industries/claude-code-acp")
+        console.print("  with:")
+        console.print("  ~/.bark-agent-hook/bin/claude-code-acp-bark")
+        console.print("  This launcher is client-agnostic; configure any ACP-compatible client to run it as the agent command.")

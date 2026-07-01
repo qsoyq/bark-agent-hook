@@ -155,14 +155,15 @@ def _validate_send_payload(payload: dict[str, Any]) -> None:
 def install(
     agents: list[AgentOption] | None = typer.Option(None, "--agent", help="要安装插件的 agent。可重复指定多个；默认安装所有支持且本地可用的 agent。"),
 ) -> None:
-    """为本地可用的 agent 安装 bark-agent-hook 插件。
+    """为本地可用的 agent 安装 bark-agent-hook 插件或适配器。
 
-    未传 --agent 时会检查 PATH 中的 codex、claude 和 openclaw CLI；缺失的 CLI 会跳过。
+    未传 --agent 时会检查 PATH 中的 codex、claude、openclaw 和 node CLI；缺失的 CLI 会跳过。
 
     安装的插件:
       Codex:        bark-agent-hook-codex@bark-agent-hook
       Claude Code:  bark-agent-hook@bark-agent-hook --scope user
       OpenClaw:     plugins/bark-agent-hook-openclaw 中的本地链接插件
+      Zed Claude Code ACP: ~/.bark-agent-hook/bin/claude-code-acp-bark 本地 ACP 适配器
     """
     results = _install_for_available_agents(agents)
     _print_install_results(results, Console(highlight=False, width=120))
