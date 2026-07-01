@@ -29,6 +29,7 @@ class AgentOption(str, Enum):
     codex = "codex"
     claude = "claude"
     openclaw = "openclaw"
+    zed_claude_code_acp = "zed-claude-code-acp"
 
 
 class BarkLevelOption(str, Enum):

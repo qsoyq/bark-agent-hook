@@ -124,6 +124,146 @@ def test_install_agent_option_limits_selected_agents(monkeypatch):
     assert ["codex", "plugin", "add", "bark-agent-hook-codex@bark-agent-hook"] in calls
     assert ["claude", "plugin", "list", "--json"] not in calls
     assert ["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"] not in calls
+    assert all("zed-claude-code-acp" not in args for args in calls)
+
+
+def test_install_default_does_not_install_zed_claude_code_acp(monkeypatch):
+    calls = []
+
+    def fake_which(command):
+        return {
+            "codex": "/opt/homebrew/bin/codex",
+            "claude": "/Users/me/.local/bin/claude",
+            "openclaw": "/usr/local/bin/openclaw",
+            "node": "/opt/homebrew/bin/node",
+            "npm": "/opt/homebrew/bin/npm",
+        }.get(command)
+
+    def fake_run(args, **kwargs):
+        calls.append(args)
+        if args == ["codex", "plugin", "list", "--json"]:
+            return _Completed(args, stdout=json.dumps({"installed": []}))
+        if args == ["claude", "plugin", "list", "--json"]:
+            return _Completed(args, stdout=json.dumps([]))
+        if args == ["openclaw", "plugins", "inspect", "bark-agent-hook-openclaw", "--runtime", "--json"]:
+            return _Completed(args, stdout=json.dumps({}))
+        return _Completed(args)
+
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
+    monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["install"])
+
+    assert result.exit_code == 0
+    assert "Zed Claude Code ACP" not in result.output
+    assert "bark-agent-hook install --agent zed-claude-code-acp" in result.output
+    assert "~/.bark-agent-hook/bin/claude-code-acp-bark" in result.output
+    assert ["npm", "install", "--omit=dev", "--ignore-scripts"] not in calls
+
+
+def test_install_zed_claude_code_acp_creates_local_launcher(monkeypatch, tmp_path):
+    calls = []
+    home = tmp_path / "home"
+    adapter_dir = home / "claude-code-acp-bark"
+    package_dir = adapter_dir / "node_modules" / "@zed-industries" / "claude-code-acp"
+    dist_dir = package_dir / "dist"
+
+    upstream_agent = """const ALLOW_BYPASS = !IS_ROOT || !!process.env.IS_SANDBOX;
+const options = {
+            hooks: {
+                ...userProvidedOptions?.hooks,
+                PreToolUse: [
+                    ...(userProvidedOptions?.hooks?.PreToolUse || []),
+                    {
+                        hooks: [createPreToolUseHook(settingsManager, this.logger)],
+                    },
+                ],
+                PostToolUse: [
+                    ...(userProvidedOptions?.hooks?.PostToolUse || []),
+                    {
+                        hooks: [
+                            createPostToolUseHook(this.logger, {
+                                onEnterPlanMode: async () => {},
+                            }),
+                        ],
+                    },
+                ],
+            },
+};
+"""
+
+    def fake_which(command):
+        return {
+            "node": "/opt/homebrew/bin/node",
+            "npm": "/opt/homebrew/bin/npm",
+        }.get(command)
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs.get("cwd")))
+        if args == ["npm", "install", "--omit=dev", "--ignore-scripts"]:
+            dist_dir.mkdir(parents=True)
+            (package_dir / "package.json").write_text(json.dumps({"version": "0.16.2"}), encoding="utf-8")
+            (dist_dir / "index.js").write_text("import './acp-agent.js';\n", encoding="utf-8")
+            (dist_dir / "acp-agent.js").write_text(upstream_agent, encoding="utf-8")
+        return _Completed(args)
+
+    monkeypatch.setenv("BARK_AGENT_HOOK_HOME", str(home))
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
+    monkeypatch.setattr(agent_bark_hook.subprocess, "run", fake_run)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["install", "--agent", "zed-claude-code-acp"])
+
+    assert result.exit_code == 0
+    assert "Zed Claude Code ACP" in result.output
+    assert "installed" in result.output
+    assert "npx -y @zed-industries/claude-code-acp" in result.output
+    assert "~/.bark-agent-hook/bin/claude-code-acp-bark" in result.output
+    assert (home / "bin" / "claude-code-acp-bark").is_file()
+    patched_agent = (dist_dir / "acp-agent.js").read_text(encoding="utf-8")
+    assert "bark-agent-hook claude-code-acp bridge" in patched_agent
+    assert "const { spawn } = await import" in patched_agent
+    assert "{{ spawn }}" not in patched_agent
+    assert "createBarkAgentHookBridge(this.logger), createPreToolUseHook" in patched_agent
+    assert any(args == ["npm", "install", "--omit=dev", "--ignore-scripts"] and cwd == adapter_dir for args, cwd in calls)
+
+
+def test_install_zed_claude_code_acp_requires_npm(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+
+    def fake_which(command):
+        return "/opt/homebrew/bin/node" if command == "node" else None
+
+    monkeypatch.setenv("BARK_AGENT_HOOK_HOME", str(home))
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", fake_which)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["install", "--agent", "zed-claude-code-acp"])
+
+    assert result.exit_code == 1
+    assert "Zed Claude Code ACP" in result.output
+    assert "failed" in result.output
+    assert "npm CLI not found" in result.output
+
+
+def test_uninstall_zed_claude_code_acp_removes_local_adapter(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    adapter_dir = home / "claude-code-acp-bark"
+    package_dir = adapter_dir / "node_modules" / "@zed-industries" / "claude-code-acp"
+    launcher = home / "bin" / "claude-code-acp-bark"
+    package_dir.mkdir(parents=True)
+    launcher.parent.mkdir(parents=True)
+    (package_dir / "package.json").write_text(json.dumps({"version": "0.16.2"}), encoding="utf-8")
+    launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    monkeypatch.setenv("BARK_AGENT_HOOK_HOME", str(home))
+    monkeypatch.setattr(agent_bark_hook.shutil, "which", lambda command: "/opt/homebrew/bin/node" if command == "node" else None)
+
+    result = runner.invoke(agent_bark_hook.cmd, ["uninstall", "--agent", "zed-claude-code-acp"])
+
+    assert result.exit_code == 0
+    assert "Zed Claude Code ACP" in result.output
+    assert "removed" in result.output
+    assert not adapter_dir.exists()
+    assert not launcher.exists()
 
 
 def test_install_repeated_agent_option_runs_selected_agents(monkeypatch):

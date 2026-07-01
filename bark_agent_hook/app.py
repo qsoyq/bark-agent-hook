@@ -12,6 +12,7 @@ helptext = """
   bark-agent-hook install
   bark-agent-hook install --agent codex
   bark-agent-hook install --agent claude --agent openclaw
+  bark-agent-hook install --agent zed-claude-code-acp
 
 卸载插件:
   bark-agent-hook uninstall

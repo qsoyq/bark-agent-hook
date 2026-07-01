@@ -52,6 +52,7 @@ Install one or more specific agents:
 ```shell
 bark-agent-hook install --agent codex
 bark-agent-hook install --agent claude --agent openclaw
+bark-agent-hook install --agent zed-claude-code-acp
 ```
 
 `uvx` works for plugin setup too, but the hook runtime still needs an installed `bark-agent-hook` command later:
@@ -60,11 +61,36 @@ bark-agent-hook install --agent claude --agent openclaw
 uvx bark-agent-hook install --agent codex
 ```
 
+### Claude Code ACP Adapter
+
+`--agent claude` installs the normal Claude Code plugin hooks. ACP clients that launch Claude through `@zed-industries/claude-code-acp` use the Claude Agent SDK path instead, so the normal Claude plugin hook commands may not run.
+
+Install the local Bark-bridged ACP adapter explicitly:
+
+```shell
+bark-agent-hook install --agent zed-claude-code-acp
+```
+
+Then configure your ACP-compatible client to replace:
+
+```shell
+npx -y @zed-industries/claude-code-acp
+```
+
+with:
+
+```shell
+~/.bark-agent-hook/bin/claude-code-acp-bark
+```
+
+The installed launcher is client-agnostic. Zed is one ACP client example, but the installer does not edit Zed settings or any other client configuration. Keep `BARK_DEVICE_KEY` available in the environment inherited by the ACP adapter process.
+
 Uninstall plugin hooks without removing marketplace sources, environment variables, or historical audit logs:
 
 ```shell
 bark-agent-hook uninstall
 bark-agent-hook uninstall --agent codex
+bark-agent-hook uninstall --agent zed-claude-code-acp
 ```
 
 Upgrade the CLI with your package manager, then run `install` again to refresh companion plugins:
