@@ -18,6 +18,7 @@ from bark_agent_hook.constants import (
     HOOK_URL_TEMPLATE_ENV,
     TITLE_TEMPLATE_ENV,
 )
+from bark_agent_hook.model_context import model_display_name, model_name, provider_name
 from bark_agent_hook.models import AgentIdentity, GroupMode, GroupModeOption, Notification
 from bark_agent_hook.runtime import (
     branch_name,
@@ -58,6 +59,8 @@ def notification_title(*, runtime: str, identity: AgentIdentity, event: str, pay
         cwd_basename=cwd_basename(payload, cwd),
         branch=title_branch_name(runtime, payload, env, cwd),
         session=session_name(payload, env),
+        model=model_name(payload),
+        provider=provider_name(payload),
     )
     values.update(lody_settings.template_values())
     configured_template = env.get(TITLE_TEMPLATE_ENV, "").strip()
@@ -96,6 +99,8 @@ def _encoded_hook_url_vars(
         "agent_id": _payload_value(payload, "agent_id", "agentId"),
         "workspace_dir": _payload_value(payload, "workspace_dir", "workspaceDir", "workspace", "cwd", "project_path"),
         "cwd_basename": cwd_basename(payload, cwd),
+        "model": model_name(payload),
+        "provider": provider_name(payload),
     }
     values.update(lody_settings.template_values())
     return {key: quote(value, safe="") for key, value in values.items()}
@@ -165,6 +170,8 @@ def notification_group(
             branch=branch_name(payload, env, cwd),
             workspace=(lody_settings.workspace_session_id or "").strip(),
             runtime=runtime,
+            model=model_name(payload),
+            provider=provider_name(payload),
         )
         try:
             rendered = configured_group.format_map(values)
@@ -220,6 +227,9 @@ def notification_markdown(
     if session:
         lines.append(f"- Session: {_markdown_code(session)}")
     lines.append(f"- Runtime: {_markdown_code(runtime)}")
+    model = model_display_name(payload).strip()
+    if model:
+        lines.append(f"- Model: {_markdown_code(model)}")
     cwd_name = cwd_basename(payload, cwd).strip()
     if cwd_name and cwd_name != project_name(payload, cwd).strip():
         lines.append(f"- Workspace: {_markdown_code(cwd_name)}")

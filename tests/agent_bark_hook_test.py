@@ -171,6 +171,98 @@ def test_dry_run_prints_notification(monkeypatch, tmp_path):
     assert "click_url" not in body
 
 
+def test_dry_run_includes_codex_model_when_payload_exposes_it(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "codex-model", "model": "gpt-5.5"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert "- Model: `gpt-5.5`" in body["markdown"]
+
+
+def test_markdown_includes_provider_model_without_duplication(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "provider-model", "provider": "openai", "model": "openai/gpt-5.5"}),
+    )
+
+    assert result.exit_code == 0
+    body = json.loads(result.output)
+    assert "- Model: `openai/gpt-5.5`" in body["markdown"]
+    assert "openai/openai/gpt-5.5" not in body["markdown"]
+
+
+def test_markdown_reads_resolved_model_aliases(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "openclaw", "--event", "completion", "--dry-run"],
+        input=json.dumps({"workspaceDir": "/tmp/demo-project", "sessionId": "resolved-model", "resolvedProvider": "anthropic", "resolvedModel": "claude-sonnet-4-6"}),
+    )
+
+    assert result.exit_code == 0
+    assert "- Model: `anthropic/claude-sonnet-4-6`" in json.loads(result.output)["markdown"]
+
+
+def test_markdown_omits_model_when_unavailable(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "no-model"}),
+    )
+
+    assert result.exit_code == 0
+    assert "- Model:" not in json.loads(result.output)["markdown"]
+
+
+def test_claude_session_start_model_is_cached_for_later_session_notifications(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    session_start = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--event", "audit_only", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "SessionStart", "session_id": "claude-model-session", "model": "claude-sonnet-4-6"}),
+    )
+    later_stop = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "Stop", "session_id": "claude-model-session"}),
+    )
+    other_session = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "hook_event_name": "Stop", "session_id": "claude-other-session"}),
+    )
+
+    assert session_start.exit_code == 0
+    assert "logged: audit-only event" in session_start.output
+    assert later_stop.exit_code == 0
+    assert "- Model: `claude-sonnet-4-6`" in json.loads(later_stop.output)["markdown"]
+    assert other_session.exit_code == 0
+    assert "- Model:" not in json.loads(other_session.output)["markdown"]
+
+
 def test_default_group_mode_uses_agent_name(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
@@ -1628,6 +1720,22 @@ def test_title_template_can_be_configured(monkeypatch, tmp_path):
 
     assert result.exit_code == 0
     assert json.loads(result.output)["title"] == "Done: Readable Project via Codex/codex/path-basename/feature/custom/Focus"
+
+
+def test_title_template_can_include_model_context(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_TITLE_TEMPLATE", "{event}: {project} on {provider}/{model}")
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"project_name": "Readable Project", "session_id": "templated-model-title", "provider": "openai", "model": "gpt-5.5"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["title"] == "Done: Readable Project on openai/gpt-5.5"
 
 
 def test_project_name_prefers_payload_and_env_names_before_paths(monkeypatch, tmp_path):

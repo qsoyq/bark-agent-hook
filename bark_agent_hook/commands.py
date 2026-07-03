@@ -10,6 +10,7 @@ from bark_agent_hook.app import cmd
 from bark_agent_hook.audit import _finish_audit_record, _new_audit_record
 from bark_agent_hook.constants import DEFAULT_SUMMARY_MAX_CHARS
 from bark_agent_hook.installer import _install_for_available_agents, _uninstall_for_available_agents
+from bark_agent_hook.model_context import payload_with_model_context, remember_model_context
 from bark_agent_hook.models import (
     AgentOption,
     BarkLevelOption,
@@ -302,17 +303,18 @@ def hook(
     模板变量:
       AGENT_BARK_NOTIFY_TITLE_TEMPLATE 支持:
         {agent}, {event}, {project}, {branch}, {session}, {runtime}, {cwd_basename},
+        {model}, {provider},
         {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
         {LODY_WORKSPACE_SESSION_ID}.
       BARK_GROUP 支持:
-        {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}.
+        {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}, {model}, {provider}.
         {repo_or_project}: 在 git 仓库内为仓库顶层目录名，否则为 project 名。
         {workdir}: 当前工作目录 basename。
         {workspace}: Lody workspace 会话，来自 LODY_WORKSPACE_SESSION_ID；缺失时为空。
       AGENT_BARK_NOTIFY_HOOK_URL 支持:
         {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
         {session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id},
-        {workspace_dir}, {cwd_basename}, {LODY_ELECTRON_BOOTSTRAP},
+        {workspace_dir}, {cwd_basename}, {model}, {provider}, {LODY_ELECTRON_BOOTSTRAP},
         {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID}, {LODY_WORKSPACE_SESSION_ID}.
       Hook URL 变量值会做 percent-encode；标题和分组变量不会 URL 编码。
     """
@@ -320,6 +322,8 @@ def hook(
     payload = parse_hook_payload(_read_stdin())
     lody_settings = LodySettings()
     resolved_runtime = detect_runtime(runtime, env, payload, lody_settings)
+    remember_model_context(resolved_runtime, payload, env)
+    payload = payload_with_model_context(resolved_runtime, payload, env)
     resolved_event = detect_event(event, payload)
     resolved_group_mode = resolve_group_mode(group_mode, env)
     audit_record = _new_audit_record(runtime=resolved_runtime, event=resolved_event, payload=payload, summary_mode=summary_mode, lody_settings=lody_settings)

@@ -128,9 +128,11 @@ The default title is intentionally compact:
 {event} - {project}
 ```
 
-Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`.
+Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, `{session}`, `{model}`, and `{provider}`.
 
-Use `BARK_GROUP` as either a fixed Bark group or a group template. Available group values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`. For example, `BARK_GROUP={project}` groups notifications by project, and `BARK_GROUP={project}@{branch}` groups them by project and branch. Group and title variables are not URL-encoded.
+Use `BARK_GROUP` as either a fixed Bark group or a group template. Available group values include `{repo_or_project}`, `{workdir}`, `{branch}`, `{workspace}`, `{runtime}`, `{model}`, and `{provider}`. For example, `BARK_GROUP={repo_or_project}` groups notifications by repository or project, and `BARK_GROUP={repo_or_project}@{branch}` groups them by repository/project and branch. Group and title variables are not URL-encoded.
+
+When hook payloads or runtime context expose the active model, generated Bark Markdown includes a `Model` line. Codex hook payloads expose `model` directly. Claude Code may expose `model` on `SessionStart`, so `bark-agent-hook` caches that model by hashed session identity for later same-session notifications. OpenClaw plugin notifications include provider/model when OpenClaw exposes them through hook event/context or plugin runtime defaults.
 
 ## Direct Send
 
