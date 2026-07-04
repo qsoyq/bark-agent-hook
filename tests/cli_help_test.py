@@ -31,7 +31,10 @@ def test_root_help_contains_install_guidance_without_plugins_group():
     assert "AGENT_BARK_NOTIFY_AUDIT_LOG_FILE 在启用审计日志时默认" in output
     assert "~/.bark-agent-hook/bark-agent-hook.log" in output
     assert "{repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}" in output
-    assert "{repo_or_project}: 在 git 仓库内为仓库顶层目录名" in output
+    assert "{repo_or_project}: 按 payload 工作目录解析" in output
+    assert "project 名依次来自 payload 项目字段" in output
+    assert "{{repo_or_project}} 会作为字面量" in output
+    assert "{repo_or_project} 输出" in output
     assert "示例: BARK_GROUP='{repo_or_project}@{branch}'" in output
     assert "plugins list" not in output
     assert "config-snippet" not in output
@@ -53,7 +56,10 @@ def test_hook_help_lists_template_variables_with_chinese_descriptions():
     assert "BARK_GROUP 支持" in output
     for value in ("{repo_or_project}", "{workdir}", "{branch}", "{workspace}", "{runtime}", "{model}", "{provider}"):
         assert value in output
-    assert "{repo_or_project}: 在 git 仓库内为仓库顶层目录名" in output
+    assert "{repo_or_project}: 按 payload 工作目录解析" in output
+    assert "{branch}: 依次来自 payload 分支字段" in output
+    assert "{{repo_or_project}} 会作为字面量" in output
+    assert "{repo_or_project} 输出" in output
     assert "{workspace}: Lody workspace 会话" in output
     assert "AGENT_BARK_NOTIFY_HOOK_URL 支持" in output
     assert "{session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id}" in output
