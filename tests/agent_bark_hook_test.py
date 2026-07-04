@@ -332,6 +332,22 @@ def test_bark_group_template_renders_repo_or_project_from_git_repo(monkeypatch, 
     assert json.loads(result.output)["group"] == "repo-project@feature/group-template"
 
 
+def test_bark_group_template_escaped_braces_render_literal_variable(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("BARK_GROUP", "LodyAI {{repo_or_project}}")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path))
+
+    result = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": str(tmp_path / "repo-project"), "session_id": "group-template-escaped"}),
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.output)["group"] == "LodyAI {repo_or_project}"
+
+
 def test_bark_group_template_falls_back_to_project_outside_git_repo(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")

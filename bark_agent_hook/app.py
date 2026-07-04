@@ -59,9 +59,12 @@ helptext = """
     示例: AGENT_BARK_NOTIFY_TITLE_TEMPLATE='[{agent}][{event}][{LODY_SESSION_ID}]'
   BARK_GROUP 支持:
     {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}.
-    {repo_or_project}: 在 git 仓库内为仓库顶层目录名，否则为 project 名。
-    {workdir}: 当前工作目录 basename。
+    {repo_or_project}: 按 payload 工作目录解析；在 git 仓库内为仓库顶层目录名，否则回退到 project 名。
+    project 名依次来自 payload 项目字段、项目环境变量、payload 路径 basename、当前 cwd basename。
+    {workdir}: payload 工作目录 basename；payload 无路径时为当前 cwd basename。
+    {branch}: 依次来自 payload 分支字段、分支环境变量、git 当前分支。
     {workspace}: Lody workspace 会话，来自 LODY_WORKSPACE_SESSION_ID；缺失时为空。
+    模板使用 Python format 语法；{{repo_or_project}} 会作为字面量 {repo_or_project} 输出。
     示例: BARK_GROUP='{repo_or_project}@{branch}'
   AGENT_BARK_NOTIFY_HOOK_URL 支持:
     {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
