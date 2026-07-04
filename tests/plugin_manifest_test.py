@@ -176,6 +176,8 @@ def test_openclaw_bark_plugin_uses_single_javascript_entry():
     assert manifest["activation"]["onStartup"] is True
     assert manifest["configSchema"] == {"type": "object", "additionalProperties": False}
     assert 'api.on(\n      "agent_end"' in runtime_entry
+    assert "runtimeModelContext(api, event, context)" in runtime_entry
+    assert "api.runtime.agent.defaults" in runtime_entry
     assert "bark-agent-hook" in runtime_entry
     assert "--runtime" in runtime_entry
     assert "openclaw" in runtime_entry

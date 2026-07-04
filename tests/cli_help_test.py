@@ -52,8 +52,10 @@ def test_hook_help_lists_template_variables_with_chinese_descriptions():
     assert "AGENT_BARK_NOTIFY_TITLE_TEMPLATE 支持" in output
     assert "{agent}, {event}, {project}, {branch}, {session}, {runtime}" in output
     assert "{cwd_basename}" in output
+    assert "{model}, {provider}" in output
     assert "BARK_GROUP 支持" in output
-    assert "{repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}" in output
+    for value in ("{repo_or_project}", "{workdir}", "{branch}", "{workspace}", "{runtime}", "{model}", "{provider}"):
+        assert value in output
     assert "{repo_or_project}: 按 payload 工作目录解析" in output
     assert "{branch}: 依次来自 payload 分支字段" in output
     assert "{{repo_or_project}} 会作为字面量" in output
@@ -61,6 +63,7 @@ def test_hook_help_lists_template_variables_with_chinese_descriptions():
     assert "{workspace}: Lody workspace 会话" in output
     assert "AGENT_BARK_NOTIFY_HOOK_URL 支持" in output
     assert "{session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id}" in output
+    assert "{workspace_dir}, {cwd_basename}, {model}, {provider}" in output
     assert "Hook URL 变量值会做 percent-encode" in output
 
 

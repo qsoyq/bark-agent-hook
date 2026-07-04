@@ -128,11 +128,11 @@ The default title is intentionally compact:
 {event} - {project}
 ```
 
-Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, and `{session}`.
+Use `AGENT_BARK_NOTIFY_TITLE_TEMPLATE` to override it. Available title values include `{agent}`, `{event}`, `{project}`, `{runtime}`, `{cwd_basename}`, `{branch}`, `{session}`, `{model}`, and `{provider}`.
 
 Use `BARK_GROUP` as either a fixed Bark group or a hook group template. The `hook` command renders group templates with Python `str.format_map()` syntax; use single braces for variables, such as `BARK_GROUP='LodyAI {repo_or_project}'`. Double braces are escapes, so `{{repo_or_project}}` is sent literally as `{repo_or_project}`. The `send` command uses `BARK_GROUP` literally and does not render templates.
 
-Available hook group values are `{repo_or_project}`, `{workdir}`, `{branch}`, `{workspace}`, and `{runtime}`:
+Available hook group values are `{repo_or_project}`, `{workdir}`, `{branch}`, `{workspace}`, `{runtime}`, `{model}`, and `{provider}`:
 
 - `{repo_or_project}` resolves from the hook payload workdir (`cwd`, `workspace`, `workspaceDir`, `workspace_dir`, or `project_path`). Inside a git repository it is the git top-level directory basename from `git rev-parse --show-toplevel`; outside git it falls back to the project name.
 - The project name fallback checks payload fields (`project_name`, `workspace_name`, `repository`, `repo`, `agentId`, `agent_id`, `name`), then project environment variables, then the payload path basename, then the current process cwd basename.
@@ -140,8 +140,11 @@ Available hook group values are `{repo_or_project}`, `{workdir}`, `{branch}`, `{
 - `{branch}` checks payload branch fields, then branch environment variables, then `git branch --show-current` from the payload workdir.
 - `{workspace}` is `LODY_WORKSPACE_SESSION_ID` with surrounding whitespace removed, or empty when unset.
 - `{runtime}` is the resolved hook runtime, such as `codex`, `claude`, `openclaw`, or `lody`.
+- `{model}` and `{provider}` come from hook payloads or cached runtime context when available.
 
 Group and title variables are not URL-encoded.
+
+When hook payloads or runtime context expose the active model, generated Bark Markdown includes a `Model` line. Codex hook payloads expose `model` directly. Claude Code may expose `model` on `SessionStart`, so `bark-agent-hook` caches that model by hashed session identity for later same-session notifications. OpenClaw plugin notifications include provider/model when OpenClaw exposes them through hook event/context or plugin runtime defaults.
 
 ## Direct Send
 

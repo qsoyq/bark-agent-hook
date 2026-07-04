@@ -54,11 +54,12 @@ helptext = """
 模板变量:
   AGENT_BARK_NOTIFY_TITLE_TEMPLATE 支持:
     {agent}, {event}, {project}, {branch}, {session}, {runtime}, {cwd_basename},
+    {model}, {provider},
     {LODY_ELECTRON_BOOTSTRAP}, {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID},
     {LODY_WORKSPACE_SESSION_ID}.
     示例: AGENT_BARK_NOTIFY_TITLE_TEMPLATE='[{agent}][{event}][{LODY_SESSION_ID}]'
   BARK_GROUP 支持:
-    {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}.
+    {repo_or_project}, {workdir}, {branch}, {workspace}, {runtime}, {model}, {provider}.
     {repo_or_project}: 按 payload 工作目录解析；在 git 仓库内为仓库顶层目录名，否则回退到 project 名。
     project 名依次来自 payload 项目字段、项目环境变量、payload 路径 basename、当前 cwd basename。
     {workdir}: payload 工作目录 basename；payload 无路径时为当前 cwd basename。
@@ -69,7 +70,7 @@ helptext = """
   AGENT_BARK_NOTIFY_HOOK_URL 支持:
     {runtime}, {agent}, {event}, {project}, {branch}, {session}, {session_id},
     {session_key}, {conversation_id}, {message_id}, {run_id}, {agent_id},
-    {workspace_dir}, {cwd_basename}, {LODY_ELECTRON_BOOTSTRAP},
+    {workspace_dir}, {cwd_basename}, {model}, {provider}, {LODY_ELECTRON_BOOTSTRAP},
     {LODY_ELECTRON_SESSION_USER_ID}, {LODY_SESSION_ID}, {LODY_WORKSPACE_SESSION_ID}.
     示例: AGENT_BARK_NOTIFY_HOOK_URL='https://lody.ai/users/{LODY_ELECTRON_SESSION_USER_ID}/sessions/{LODY_SESSION_ID}'
   Hook URL 变量值会做 percent-encode；标题和分组变量不会 URL 编码。

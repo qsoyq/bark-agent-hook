@@ -99,6 +99,26 @@ function eventContent(event) {
   return undefined;
 }
 
+function firstString(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function runtimeModelContext(api, event, ctx) {
+  const runtimeDefaults = isRecord(api?.runtime?.agent?.defaults) ? api.runtime.agent.defaults : {};
+  const context = normalizeContext(ctx);
+  const model = firstString(event?.resolvedModel, event?.model, context.resolvedModel, context.model, runtimeDefaults.model);
+  const provider = firstString(event?.resolvedProvider, event?.provider, context.resolvedProvider, context.provider, runtimeDefaults.provider);
+  return {
+    ...(model ? { model } : {}),
+    ...(provider ? { provider } : {}),
+  };
+}
+
 export default definePluginEntry({
   id: "bark-agent-hook-openclaw",
   name: "Agent Bark Notify",
@@ -116,6 +136,7 @@ export default definePluginEntry({
         await runBarkHook(event.success ? "completion" : "failed", {
           source: "openclaw",
           hook_event_name: "agent_end",
+          ...runtimeModelContext(api, event, context),
           success: event.success,
           error: event.error,
           durationMs: event.durationMs,
@@ -146,6 +167,7 @@ export default definePluginEntry({
         await runBarkHook("completion", {
           source: "openclaw",
           hook_event_name: "message_sent",
+          ...runtimeModelContext(api, event, context),
           success: event.success,
           content: eventContent(event),
           channelId: event.channelId ?? context.channelId,
