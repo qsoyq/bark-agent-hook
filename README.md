@@ -112,6 +112,7 @@ BARK_GROUP={repo_or_project}
 AGENT_BARK_NOTIFY_GROUP_MODE=agent
 AGENT_BARK_NOTIFY_HOOK_URL=
 AGENT_BARK_NOTIFY_TITLE_TEMPLATE=
+AGENT_BARK_NOTIFY_STATE_DIR=
 AGENT_BARK_NOTIFY_AUDIT_LOG=1
 AGENT_BARK_NOTIFY_AUDIT_LOG_FILE=~/.bark-agent-hook/bark-agent-hook.log
 ```
@@ -144,7 +145,15 @@ Available hook group values are `{repo_or_project}`, `{workdir}`, `{branch}`, `{
 
 Group and title variables are not URL-encoded.
 
-When hook payloads or runtime context expose the active model, generated Bark Markdown includes a `Model` line. Codex hook payloads expose `model` directly. Claude Code may expose `model` on `SessionStart`, so `bark-agent-hook` caches that model by hashed session identity for later same-session notifications. OpenClaw plugin notifications include provider/model when OpenClaw exposes them through hook event/context or plugin runtime defaults.
+When hook payloads or runtime context expose the active model, generated Bark Markdown includes a `Model` line. Codex hook payloads expose `model` directly.
+`bark-agent-hook` caches model/provider context by hashed session identity whenever any runtime/event exposes both a session identity and model context, then reuses it for later same-session notifications.
+This generic cache is intentional; for example, Claude Code may expose `model` on `SessionStart`, while OpenClaw plugin notifications include provider/model when OpenClaw exposes them through hook event/context or plugin runtime defaults.
+
+`AGENT_BARK_NOTIFY_STATE_DIR` overrides the local state directory used by hook delivery.
+When unset, it defaults to the system temporary directory plus `bark-agent-hook`, such as `/tmp/bark-agent-hook` on many systems.
+This directory stores best-effort local hook state, including duplicate-delivery markers and model context cache files under `model-context/<runtime>/`.
+Cache files do not contain raw session ids because filenames use hashed session identity.
+Temporary directory cleanup is left to the operating system.
 
 ## Direct Send
 
