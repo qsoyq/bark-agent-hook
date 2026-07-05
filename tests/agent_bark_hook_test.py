@@ -263,6 +263,50 @@ def test_claude_session_start_model_is_cached_for_later_session_notifications(mo
     assert "- Model:" not in json.loads(other_session.output)["markdown"]
 
 
+def test_codex_model_is_cached_for_later_same_runtime_session_notifications(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    first_event = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "audit_only", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "codex-model-session", "model": "gpt-5.5"}),
+    )
+    later_event = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "codex-model-session"}),
+    )
+
+    assert first_event.exit_code == 0
+    assert "logged: audit-only event" in first_event.output
+    assert later_event.exit_code == 0
+    assert "- Model: `gpt-5.5`" in json.loads(later_event.output)["markdown"]
+
+
+def test_model_cache_is_scoped_by_runtime(monkeypatch, tmp_path):
+    _clear_agent_env(monkeypatch)
+    monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
+    monkeypatch.setenv("AGENT_BARK_NOTIFY_STATE_DIR", str(tmp_path / "state"))
+
+    claude_event = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "claude", "--event", "audit_only", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "shared-session", "model": "claude-sonnet-4-6"}),
+    )
+    codex_event = runner.invoke(
+        agent_bark_hook.cmd,
+        ["hook", "--runtime", "codex", "--event", "completion", "--dry-run"],
+        input=json.dumps({"cwd": "/tmp/demo-project", "session_id": "shared-session"}),
+    )
+
+    assert claude_event.exit_code == 0
+    assert "logged: audit-only event" in claude_event.output
+    assert codex_event.exit_code == 0
+    assert "- Model:" not in json.loads(codex_event.output)["markdown"]
+
+
 def test_default_group_mode_uses_agent_name(monkeypatch, tmp_path):
     _clear_agent_env(monkeypatch)
     monkeypatch.setenv("BARK_DEVICE_KEY", "device-key")
