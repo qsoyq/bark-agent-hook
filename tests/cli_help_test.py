@@ -68,7 +68,7 @@ def test_hook_help_lists_template_variables_with_chinese_descriptions():
 
 
 def test_send_help_lists_direct_bark_options_with_descriptions():
-    result = runner.invoke(agent_bark_hook.cmd, ["send", "--help"])
+    result = runner.invoke(agent_bark_hook.cmd, ["send", "--help"], terminal_width=160)
     output = _plain(result.output)
 
     assert result.exit_code == 0
