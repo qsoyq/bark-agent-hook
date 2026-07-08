@@ -110,7 +110,7 @@ with:
 On Windows, use the generated `.cmd` launcher instead:
 
 ```powershell
-%USERPROFILE%\.bark-agent-hook\bin\claude-code-acp-bark.cmd
+$env:USERPROFILE\.bark-agent-hook\bin\claude-code-acp-bark.cmd
 ```
 
 The installed launcher is client-agnostic. Zed is one ACP client example, but the installer does not edit Zed settings or any other client configuration. Keep `BARK_DEVICE_KEY` available in the environment inherited by the ACP adapter process.
@@ -281,7 +281,7 @@ Windows PowerShell dry-run check:
 - If Windows cannot find the CLI, run `where bark-agent-hook`. Reinstall with `uv tool install bark-agent-hook`, `pipx install bark-agent-hook`, or fix the `PATH` used by the agent process.
 - If a hook works manually but not from Codex or Claude Code, confirm the agent inherits the same `PATH` and `BARK_DEVICE_KEY` environment as your shell.
 - If notification delivery is skipped but the hook exits successfully, set `BARK_DEVICE_KEY` in the environment inherited by the agent.
-- If the Claude Code ACP adapter does not start on Windows, confirm `%USERPROFILE%\.bark-agent-hook\bin\claude-code-acp-bark.cmd` exists and run it directly with `--help` from PowerShell.
+- If the Claude Code ACP adapter does not start on Windows, confirm `$env:USERPROFILE\.bark-agent-hook\bin\claude-code-acp-bark.cmd` exists and run it directly with `--help` from PowerShell.
 - If Windows shell quoting errors appear, refresh the installed plugins with `bark-agent-hook install --agent codex` or `bark-agent-hook install --agent claude`; the packaged manifests avoid hand-edited shell-escaped hook one-liners.
 
 ## Development
