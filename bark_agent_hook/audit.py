@@ -51,6 +51,8 @@ def _audit_log_path(env: dict[str, str]) -> Path:
     configured = _env_value(env, AUDIT_LOG_FILE_ENV)
     if configured:
         return Path(configured).expanduser()
+    if sys.platform == "win32" and (home := env.get("HOME")):
+        return Path(home).expanduser() / ".bark-agent-hook" / "bark-agent-hook.log"
     return DEFAULT_AUDIT_LOG_PATH.expanduser()
 
 
@@ -74,6 +76,11 @@ def _command_dir(argv0: str | None = None) -> str | None:
             return None
 
     found = shutil.which(command)
+    if found is None and sys.platform == "win32" and Path(command).suffix == "":
+        for suffix in (".exe", ".cmd", ".bat"):
+            found = shutil.which(f"{command}{suffix}")
+            if found is not None:
+                break
     if found is None:
         return None
     try:

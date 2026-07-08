@@ -67,7 +67,7 @@ def _clear_agent_env(monkeypatch):
 
 
 def _read_jsonl(path):
-    return [json.loads(line) for line in path.read_text().splitlines()]
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
 def test_command_dir_uses_explicit_executable_path(tmp_path):
@@ -79,7 +79,8 @@ def test_command_dir_uses_explicit_executable_path(tmp_path):
 def test_command_dir_uses_path_lookup(monkeypatch, tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    executable = bin_dir / "bark-agent-hook"
+    executable_name = "bark-agent-hook.cmd" if sys.platform == "win32" else "bark-agent-hook"
+    executable = bin_dir / executable_name
     executable.write_text("#!/bin/sh\n", encoding="utf-8")
     executable.chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir))
@@ -1444,7 +1445,7 @@ def test_hook_url_template_renders_encoded_click_url_without_audit_leak(monkeypa
         "lody://session/s%2Fdemo%201/agent%3Amain%3Atelegram/conv%2F1/msg%202/run%3A3/agent%2F4/"
         "%2Ftmp%2Fdemo%20project/demo%20project/openclaw/OpenClaw/completion/Demo%20Project/feature%2Fclick%20url/main%20session"
     )
-    audit_text = audit_log.read_text()
+    audit_text = audit_log.read_text(encoding="utf-8")
     assert "lody://session" not in audit_text
     assert "s%2Fdemo%201" not in audit_text
 
@@ -2200,7 +2201,7 @@ def test_audit_only_event_logs_without_bark_device_key(monkeypatch, tmp_path):
     assert records[-1]["event"] == "audit_only"
     assert records[-1]["status"] == "logged_audit_only_event"
     assert "body_preview" not in records[-1]
-    assert "secret=do-not-log" not in audit_log.read_text()
+    assert "secret=do-not-log" not in audit_log.read_text(encoding="utf-8")
 
 
 def test_permission_denied_is_attention_even_when_unsuccessful(monkeypatch, tmp_path):

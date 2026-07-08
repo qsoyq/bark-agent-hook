@@ -164,7 +164,7 @@ def install(
       Codex:        bark-agent-hook-codex@bark-agent-hook
       Claude Code:  bark-agent-hook@bark-agent-hook --scope user
       OpenClaw:     plugins/bark-agent-hook-openclaw 中的本地链接插件
-      Zed Claude Code ACP: ~/.bark-agent-hook/bin/claude-code-acp-bark 本地 ACP 适配器
+      Zed Claude Code ACP: ~/.bark-agent-hook/bin/claude-code-acp-bark 本地 ACP 适配器（Windows 为 .cmd 后缀）
     """
     results = _install_for_available_agents(agents)
     _print_install_results(results, Console(highlight=False, width=120))

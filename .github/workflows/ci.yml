@@ -64,10 +64,40 @@ jobs:
       - name: Run pre-commit
         run: uv run pre-commit run --all-files
 
+  windows-smoke:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dev group
+        run: uv sync --group dev
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Build package
+        run: uv build
+
+      - name: Codex hook dry-run
+        run: uv run bark-agent-hook hook --runtime codex --event completion --dry-run
+
+      - name: Claude hook dry-run
+        run: uv run bark-agent-hook hook --runtime claude --event completion --dry-run
+
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [test, lint]
+    needs: [test, lint, windows-smoke]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
       release-created: ${{ steps.release.outputs.created }}
@@ -182,6 +212,7 @@ jobs:
             "test (3.13)"
             "test (3.14)"
             "lint"
+            "windows-smoke"
           )
 
           response="$(gh api \

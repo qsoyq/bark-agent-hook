@@ -39,6 +39,30 @@ uvx bark-agent-hook send --title "Test" --body "Hello" --dry-run
 
 For real agent hooks, keep `bark-agent-hook` installed in `PATH`. The installed Codex, Claude Code, and OpenClaw plugins invoke `bark-agent-hook hook ...` when the agent emits lifecycle events.
 
+## Platform Support
+
+| Platform | Support |
+|---|---|
+| macOS/Linux | Supported for Codex, Claude Code, OpenClaw, and the Claude Code ACP adapter. |
+| Windows | Supported natively for Codex and Claude Code hooks. The Claude Code ACP adapter installs a `.cmd` launcher on Windows. |
+| WSL | Supported as a Unix-like environment. WSL is not required for native Windows hook support. |
+| OpenClaw on native Windows | Not verified; OpenClaw Windows support is not required for Codex or Claude Code hooks. |
+
+On Windows, install the CLI in a PowerShell or `cmd.exe` environment that the agent can also inherit:
+
+```powershell
+uv tool install bark-agent-hook
+where bark-agent-hook
+bark-agent-hook --help
+```
+
+For native Windows smoke testing:
+
+```powershell
+'{"session_id":"win-smoke","cwd":"C:\\Users\\me\\demo"}' | bark-agent-hook hook --runtime codex --event completion --dry-run
+'{"session_id":"win-smoke","cwd":"C:\\Users\\me\\demo"}' | bark-agent-hook hook --runtime claude --event completion --dry-run
+```
+
 ## Plugin Setup
 
 Install all locally available agent plugins after installing the CLI:
@@ -81,6 +105,12 @@ with:
 
 ```shell
 ~/.bark-agent-hook/bin/claude-code-acp-bark
+```
+
+On Windows, use the generated `.cmd` launcher instead:
+
+```powershell
+$env:USERPROFILE\.bark-agent-hook\bin\claude-code-acp-bark.cmd
 ```
 
 The installed launcher is client-agnostic. Zed is one ACP client example, but the installer does not edit Zed settings or any other client configuration. Keep `BARK_DEVICE_KEY` available in the environment inherited by the ACP adapter process.
@@ -239,6 +269,20 @@ Local dry-run check:
 printf '%s' '{"session_id":"demo","cwd":"/tmp/demo-project"}' \
   | BARK_DEVICE_KEY=device-key bark-agent-hook hook --runtime codex --event completion --dry-run
 ```
+
+Windows PowerShell dry-run check:
+
+```powershell
+'{"session_id":"demo","cwd":"C:\\Users\\me\\demo-project"}' | bark-agent-hook hook --runtime codex --event completion --dry-run
+```
+
+## Troubleshooting
+
+- If Windows cannot find the CLI, run `where bark-agent-hook`. Reinstall with `uv tool install bark-agent-hook`, `pipx install bark-agent-hook`, or fix the `PATH` used by the agent process.
+- If a hook works manually but not from Codex or Claude Code, confirm the agent inherits the same `PATH` and `BARK_DEVICE_KEY` environment as your shell.
+- If notification delivery is skipped but the hook exits successfully, set `BARK_DEVICE_KEY` in the environment inherited by the agent.
+- If the Claude Code ACP adapter does not start on Windows, confirm `$env:USERPROFILE\.bark-agent-hook\bin\claude-code-acp-bark.cmd` exists and run it directly with `--help` from PowerShell.
+- If Windows shell quoting errors appear, refresh the installed plugins with `bark-agent-hook install --agent codex` or `bark-agent-hook install --agent claude`; the packaged manifests avoid hand-edited shell-escaped hook one-liners.
 
 ## Development
 
