@@ -3,6 +3,7 @@ from __future__ import annotations
 from rich.console import Console
 from rich.table import Table
 
+from bark_agent_hook.installer import _claude_code_acp_launcher_path
 from bark_agent_hook.models import InstallResult, InstallStatus
 
 
@@ -88,6 +89,7 @@ def _print_uninstall_results(results: list[InstallResult], console: Console) -> 
 
 
 def _print_install_next_steps(results: list[InstallResult], console: Console) -> None:
+    acp_launcher_path = str(_claude_code_acp_launcher_path())
     if _found_cli_count(results) == 0:
         console.print("[bold]Next steps:[/bold]")
         console.print("  Install Codex, Claude Code, or OpenClaw first, then run:")
@@ -107,7 +109,7 @@ def _print_install_next_steps(results: list[InstallResult], console: Console) ->
     console.print()
     console.print("  Optional ACP adapter:")
     console.print("  bark-agent-hook install --agent zed-claude-code-acp")
-    console.print("  Installs ~/.bark-agent-hook/bin/claude-code-acp-bark for ACP clients that launch @zed-industries/claude-code-acp.")
+    console.print(f"  Installs {acp_launcher_path} for ACP clients that launch @zed-industries/claude-code-acp.")
     console.print()
     if any(result.agent == "Codex" for result in results):
         console.print()
@@ -128,5 +130,5 @@ def _print_install_next_steps(results: list[InstallResult], console: Console) ->
         console.print("  Replace ACP clients that launch:")
         console.print("  npx -y @zed-industries/claude-code-acp")
         console.print("  with:")
-        console.print("  ~/.bark-agent-hook/bin/claude-code-acp-bark")
+        console.print(f"  {acp_launcher_path}")
         console.print("  This launcher is client-agnostic; configure any ACP-compatible client to run it as the agent command.")

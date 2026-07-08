@@ -56,48 +56,52 @@ def test_codex_bark_plugin_hook_config_uses_codex_schema():
     plugin_root = Path("plugins/bark-agent-hook-codex")
     hook_config = json.loads((plugin_root / "hooks/hooks.json").read_text())
 
-    approval_command = "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract"
-    attention_command = "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
-    audit_command = "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
-    auto_command = "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
-    completion_command = "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+    def command(event: str) -> str:
+        return f"bark-agent-hook hook --runtime codex --event {event} --summary-mode extract"
 
-    commands = {name: entries[0]["hooks"][0]["command"] for name, entries in hook_config["hooks"].items()}
-    permission_hook = hook_config["hooks"]["PermissionRequest"][0]["hooks"][0]
-    assert permission_hook == {"type": "command", "command": approval_command}
-    assert commands["Notification"] == auto_command
-    assert commands["Elicitation"] == attention_command
-    assert commands["PermissionDenied"] == attention_command
+    commands = {}
+    for name, entries in hook_config["hooks"].items():
+        hook = entries[0]["hooks"][0]
+        assert hook["type"] == "command"
+        assert hook["commandWindows"] == hook["command"]
+        commands[name] = hook["command"]
+
+    assert commands["PermissionRequest"] == command("approval_needed")
+    assert commands["Notification"] == command("auto")
+    assert commands["Elicitation"] == command("attention_needed")
+    assert commands["PermissionDenied"] == command("attention_needed")
     for event_name in ("UserPromptSubmit", "SessionStart", "PostToolUse", "PreCompact", "PostCompact", "SubagentStart"):
-        assert commands[event_name] == audit_command
-    assert commands["PreToolUse"] == auto_command
-    assert commands["SubagentStop"] == completion_command
-    assert commands["Stop"] == completion_command
+        assert commands[event_name] == command("audit_only")
+    assert commands["PreToolUse"] == command("auto")
+    assert commands["SubagentStop"] == command("completion")
+    assert commands["Stop"] == command("completion")
 
 
 def test_claude_bark_plugin_hook_config_catches_user_questions():
     plugin_root = Path("plugins/bark-agent-hook-claude")
     hook_config = json.loads((plugin_root / "hooks/hooks.json").read_text())
 
-    approval_command = "bark-agent-hook hook --runtime claude --event approval_needed --summary-mode extract"
-    attention_command = "bark-agent-hook hook --runtime claude --event attention_needed --summary-mode extract"
-    audit_command = "bark-agent-hook hook --runtime claude --event audit_only --summary-mode extract"
-    auto_command = "bark-agent-hook hook --runtime claude --event auto --summary-mode extract"
-    completion_command = "bark-agent-hook hook --runtime claude --event completion --summary-mode extract"
-    failed_command = "bark-agent-hook hook --runtime claude --event failed --summary-mode extract"
+    def args(event: str) -> list[str]:
+        return ["hook", "--runtime", "claude", "--event", event, "--summary-mode", "extract"]
 
-    commands = {name: entries[0]["hooks"][0]["command"] for name, entries in hook_config["hooks"].items()}
-    permission_hook = hook_config["hooks"]["PermissionRequest"][0]["hooks"][0]
-    assert permission_hook == {"type": "command", "command": approval_command}
-    assert commands["Notification"] == auto_command
-    assert commands["PreToolUse"] == auto_command
+    commands = {}
+    for name, entries in hook_config["hooks"].items():
+        hook = entries[0]["hooks"][0]
+        assert hook["type"] == "command"
+        assert hook["command"] == "bark-agent-hook"
+        assert "commandWindows" not in hook
+        commands[name] = hook["args"]
+
+    assert commands["PermissionRequest"] == args("approval_needed")
+    assert commands["Notification"] == args("auto")
+    assert commands["PreToolUse"] == args("auto")
     for event_name in ("UserPromptSubmit", "PostToolUse", "PreCompact", "SessionStart", "MessageDisplay"):
-        assert commands[event_name] == audit_command
+        assert commands[event_name] == args("audit_only")
     for event_name in ("PermissionDenied", "Elicitation"):
-        assert commands[event_name] == attention_command
-    assert commands["StopFailure"] == failed_command
-    assert commands["SubagentStop"] == completion_command
-    assert commands["Stop"] == completion_command
+        assert commands[event_name] == args("attention_needed")
+    assert commands["StopFailure"] == args("failed")
+    assert commands["SubagentStop"] == args("completion")
+    assert commands["Stop"] == args("completion")
 
 
 def test_bark_plugin_versions_match_project_version():

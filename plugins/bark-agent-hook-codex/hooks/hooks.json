@@ -5,7 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event approval_needed --summary-mode extract"
           }
         ]
       }
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
           }
         ]
       }
@@ -25,7 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
           }
         ]
       }
@@ -35,7 +38,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event attention_needed --summary-mode extract"
           }
         ]
       }
@@ -45,7 +49,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -55,7 +60,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -65,7 +71,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event auto --summary-mode extract"
           }
         ]
       }
@@ -75,7 +82,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -85,7 +93,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -95,7 +104,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -105,7 +115,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event audit_only --summary-mode extract"
           }
         ]
       }
@@ -115,7 +126,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
           }
         ]
       }
@@ -125,7 +137,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
+            "command": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract",
+            "commandWindows": "bark-agent-hook hook --runtime codex --event completion --summary-mode extract"
           }
         ]
       }

@@ -213,8 +213,20 @@ def _claude_code_acp_bin_dir() -> Path:
     return _bark_agent_home() / "bin"
 
 
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
 def _claude_code_acp_launcher_path() -> Path:
-    return _claude_code_acp_bin_dir() / CLAUDE_CODE_ACP_ADAPTER_NAME
+    suffix = ".cmd" if _is_windows() else ""
+    return _claude_code_acp_bin_dir() / f"{CLAUDE_CODE_ACP_ADAPTER_NAME}{suffix}"
+
+
+def _claude_code_acp_launcher_paths() -> list[Path]:
+    launcher_path = _claude_code_acp_launcher_path()
+    legacy_suffix = "" if _is_windows() else ".cmd"
+    legacy_path = _claude_code_acp_bin_dir() / f"{CLAUDE_CODE_ACP_ADAPTER_NAME}{legacy_suffix}"
+    return [launcher_path] if launcher_path == legacy_path else [launcher_path, legacy_path]
 
 
 def _claude_code_acp_entrypoint(adapter_dir: Path) -> Path:
@@ -409,12 +421,18 @@ def _patch_claude_code_acp_agent(agent_file: Path) -> None:
 
 
 def _write_claude_code_acp_launcher(launcher_path: Path, node_path: str, entrypoint: Path) -> None:
-    launcher = f"""#!/bin/sh
+    if _is_windows():
+        launcher = f"""@echo off
+{json.dumps(node_path)} {json.dumps(str(entrypoint))} %*
+"""
+    else:
+        launcher = f"""#!/bin/sh
 exec {json.dumps(node_path)} {json.dumps(str(entrypoint))} "$@"
 """
     launcher_path.parent.mkdir(parents=True, exist_ok=True)
     launcher_path.write_text(launcher, encoding="utf-8")
-    launcher_path.chmod(0o755)
+    if not _is_windows():
+        launcher_path.chmod(0o755)
 
 
 def _install_zed_claude_code_acp(node_path: str) -> InstallResult:
@@ -502,9 +520,10 @@ def _uninstall_zed_claude_code_acp(_node_path: str) -> InstallResult:
     launcher_path = _claude_code_acp_launcher_path()
     removed = False
     try:
-        if launcher_path.exists():
-            launcher_path.unlink()
-            removed = True
+        for path in _claude_code_acp_launcher_paths():
+            if path.exists():
+                path.unlink()
+                removed = True
         if adapter_dir.exists():
             shutil.rmtree(adapter_dir)
             removed = True
