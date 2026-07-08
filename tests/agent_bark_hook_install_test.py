@@ -217,7 +217,8 @@ const options = {
     assert "Zed Claude Code ACP" in result.output
     assert "installed" in result.output
     assert "npx -y @zed-industries/claude-code-acp" in result.output
-    assert (home / "bin" / "claude-code-acp-bark").is_file()
+    launcher_name = "claude-code-acp-bark.cmd" if sys.platform == "win32" else "claude-code-acp-bark"
+    assert (home / "bin" / launcher_name).is_file()
     patched_agent = (dist_dir / "acp-agent.js").read_text(encoding="utf-8")
     assert "bark-agent-hook claude-code-acp bridge" in patched_agent
     assert "const { spawn } = await import" in patched_agent

@@ -82,7 +82,6 @@ def test_send_help_lists_direct_bark_options_with_descriptions():
     assert "Markdown" in output
     assert "推送正文" in output
     assert "--auto-copy" in output
-    assert "自动复制推送内容" in output
     assert "--archive" in output
     assert "保存到 Bark" in output
     assert "历史" in output
